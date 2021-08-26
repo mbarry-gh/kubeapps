@@ -106,14 +106,17 @@ spec:
           initialDelaySeconds: 5
           timeoutSeconds: 5
         args:
-        - --git-url=$GIT_REPO
-        - --git-branch=$GIT_BRANCH
-        - --git-path=$GIT_PATH
+        - --git-url=http://host.k3d.internal:3000/vscode/gitops
+        - --git-branch=master
+        - --git-path=gitops
         - --git-readonly
         - --sync-state=secret
         - --listen-metrics=:3031
         - --git-timeout=30s
         - --registry-disable-scanning=true
+        - --sync-garbage-collection=true
+        - --sync-interval=5m
+
 ---
 apiVersion: v1
 kind: Secret
