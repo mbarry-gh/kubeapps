@@ -1,0 +1,5 @@
+{
+    "zone": "az-eastus2",
+    "region": "East",
+    "template": "autogitops.yaml"
+}

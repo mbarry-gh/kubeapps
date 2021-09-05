@@ -1,0 +1,9 @@
+{
+    "name": "{{gitops.name}}",
+    "namespace": "{{gitops.namespace}}",
+    "imageName": "k3d-registry.localhost:5000/{{gitops.name}}",
+    "imageTag": "local",
+    "port": 8080,
+    "nodePort": 30080,
+    "targets": [ "local" ] 
+}

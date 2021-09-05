@@ -1,0 +1,9 @@
+{
+  "name": "weather",
+  "namespace": "default",
+  "imageName": "k3d-registry.localhost:5000/weather",
+  "imageTag": "local",
+  "port": 8080,
+  "nodePort": 30081,
+  "targets": [ "local" ]
+}
