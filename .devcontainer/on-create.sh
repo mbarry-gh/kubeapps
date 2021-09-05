@@ -3,7 +3,7 @@
 echo "on-create start" >> ~/status
 
 # run dotnet restore
-dotnet restore weather/weather.csproj 
+dotnet restore ago/src/ago.csproj 
 
 # clone repos
 git clone https://github.com/retaildevcrews/ngsa-app /workspaces/ngsa-app
@@ -14,7 +14,7 @@ sudo cp deploy/grafanadata/grafana.db /grafana
 sudo chown -R 472:0 /grafana
 
 # initialize dapr
-dapr init
+# dapr init
 
 # create local registry
 docker network create k3d
