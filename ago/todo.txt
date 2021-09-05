@@ -1,0 +1,8 @@
+publish to nuget
+
+dotnet pack --version-suffix beta-5
+
+publish docker image on bartr
+
+update docker readme
+
