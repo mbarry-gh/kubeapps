@@ -185,6 +185,7 @@ namespace AutoGitOps
             add.AddCommand(new ("app"));
             add.AddCommand(new ("fluentbit"));
             add.AddCommand(new ("grafana"));
+            add.AddCommand(new ("jumpbox"));
             add.AddCommand(new ("prometheus"));
 
             app.AddCommand(new ("build"));

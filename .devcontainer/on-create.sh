@@ -3,7 +3,7 @@
 echo "on-create start" >> ~/status
 
 # run dotnet restore
-dotnet restore ago/src/ago.csproj 
+dotnet restore kap/kap.csproj 
 
 # clone repos
 git clone https://github.com/retaildevcrews/ngsa-app /workspaces/ngsa-app
@@ -12,9 +12,6 @@ git clone https://github.com/microsoft/webvalidate /workspaces/webvalidate
 # copy grafana.db to /grafana
 sudo cp deploy/grafanadata/grafana.db /grafana
 sudo chown -R 472:0 /grafana
-
-# initialize dapr
-# dapr init
 
 # create local registry
 docker network create k3d
@@ -42,7 +39,7 @@ docker run -d \
 --name gogs \
 --restart always \
 --network k3d \
--p 3000:3000 -p 8322:22 \
+-p 3000:3000 -p 22:22 \
 -v /ago/gogs/data:/data \
 gogs/gogs
 

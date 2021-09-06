@@ -79,6 +79,16 @@ namespace AutoGitOps
 
                     cfg["name"] = Path.GetFileNameWithoutExtension(files.First<string>());
                 }
+                else
+                {
+                    cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
+                    cfg["image"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                }
+            }
+
+            if (!cfg.ContainsKey("name"))
+            {
+                cfg["name"] = "app";
             }
 
             if (!cfg.ContainsKey("imageName"))
@@ -89,11 +99,6 @@ namespace AutoGitOps
             if (!cfg.ContainsKey("imageTag"))
             {
                 cfg["imageTag"] = "local";
-            }
-
-            if (!cfg.ContainsKey("name"))
-            {
-                cfg["name"] = "app";
             }
 
             if (!cfg.ContainsKey("namespace"))
@@ -156,7 +161,7 @@ namespace AutoGitOps
 
                 case "dotnet":
                 case "init":
-                    // run dotnet new
+                    // create new dotnet app
                     if (cmd == "dotnet")
                     {
                         DotNetNew();
@@ -292,6 +297,8 @@ namespace AutoGitOps
             else
             {
                 Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
+                Console.WriteLine($"{Directory.GetCurrentDirectory()}\n{GitOpsDir}");
 
                 if (Directory.Exists(GitOpsDir))
                 {

@@ -15,14 +15,14 @@
     <PackAsTool>true</PackAsTool>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageId>AutoGitOps</PackageId>
+    <PackageId>KubeApps</PackageId>
     <Author>bartr</Author>
-    <ToolCommandName>ago</ToolCommandName>
+    <ToolCommandName>kap</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>   
-    <RepositoryUrl>https://github.com/bartr/autogitops/</RepositoryUrl> 
-    <Description>AutoGitOps (ago) is a tool to generate Flux GitOps deployment files for Kubernetes deployments</Description>
-    <PackageDescription>Auto GitOps (ago) is a tool to generate Flux GitOps deployment files for Kubernetes deployments</PackageDescription>
-    <Title>Web Validate</Title>
+    <RepositoryUrl>https://github.com/bartr/kubeapps/</RepositoryUrl> 
+    <Description>KubeApps (kap) is a tool to generate Flux GitOps deployment files for Kubernetes deployments</Description>
+    <PackageDescription>KubeApps (kap) is a tool to generate Flux GitOps deployment files for Kubernetes deployments</PackageDescription>
+    <Title>KubeApps</Title>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,16 +46,6 @@
     <Content Include="..\content\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="..\content\deploy\central\**" />
-    <Content Remove="..\content\deploy\east\**" />
-    <Content Remove="..\content\deploy\west\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="..\content\autogitops\autogitops.yaml" />
   </ItemGroup>
 
 </Project>

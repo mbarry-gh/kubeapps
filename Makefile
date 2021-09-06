@@ -14,7 +14,7 @@ help :
 	@echo "   make webv             - build and deploy a local WebV docker image"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
-all : create deploy jumpbox
+all : create jumpbox
 
 delete :
 	# delete the cluster (if exists)

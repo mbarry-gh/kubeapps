@@ -162,10 +162,10 @@ data:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: fluentb
+  name: fluentbit
   namespace: default
   labels:
-    app: fluentb
+    app: fluentbit
 spec:
     priorityClassName: system-node-critical
     serviceAccountName: fluentbit
