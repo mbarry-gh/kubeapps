@@ -19,7 +19,31 @@ ports:
   - port: 30080:30080
     nodeFilters:
       - server[0]
+  - port: 30081:30081
+    nodeFilters:
+      - server[0]
+  - port: 30082:30082
+    nodeFilters:
+      - server[0]
+  - port: 30083:30083
+    nodeFilters:
+      - server[0]
+  - port: 30084:30084
+    nodeFilters:
+      - server[0]
+  - port: 30085:30085
+    nodeFilters:
+      - server[0]
+  - port: 30086:30086
+    nodeFilters:
+      - server[0]
+  - port: 30087:30087
+    nodeFilters:
+      - server[0]
   - port: 30088:30088
+    nodeFilters:
+      - server[0]
+  - port: 30089:30089
     nodeFilters:
       - server[0]
   - port: 32000:32000
