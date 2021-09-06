@@ -43,7 +43,7 @@ docker exec postgres psql -U postgres -c "create database gogs owner gogs;"
 
 # clone repos
 git clone https://github.com/retaildevcrews/ngsa-dapr /workspaces/ngsa
-git clone https://github.com/microsoft/webvalidate /workspaces/webvalidate
+git clone https://github.com/cse-labs/webvalidate /workspaces/webvalidate
 
 # run local git instance
 docker run -d \
