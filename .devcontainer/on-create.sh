@@ -42,7 +42,7 @@ rm go1.17.linux-amd64.tar.gz
 docker exec postgres psql -U postgres -c "create database gogs owner gogs;"
 
 # clone repos
-git clone https://github.com/retaildevcrews/ngsa-app /workspaces/ngsa-app
+git clone https://github.com/retaildevcrews/ngsa-dapr /workspaces/ngsa
 git clone https://github.com/microsoft/webvalidate /workspaces/webvalidate
 
 # run local git instance
