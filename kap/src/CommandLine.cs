@@ -5,8 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.IO;
 using System.Linq;
-using System.Text.Json;
 
 namespace Kube.Apps
 {
@@ -17,15 +17,6 @@ namespace Kube.Apps
     {
         private static readonly List<string> EnvVarErrors = new ();
         private static readonly DateTime Now = DateTime.UtcNow;
-        private static readonly JsonSerializerOptions JsonOptions = new ()
-        {
-            PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-            IgnoreNullValues = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-        };
 
         // private static Dictionary<string, object> appConfig = null;
         // private static List<string> targets = null;
@@ -57,29 +48,33 @@ namespace Kube.Apps
                 TreatUnmatchedTokensAsErrors = true,
             };
 
-            Command add = new ("add");
-            Command remove = new ("remove");
-            Command deploy = new ("deploy");
-            Command app = new ("app");
+            Command add = new ("add", "Add bootstrap components");
+            Command remove = new ("remove", "Remove bootstrap components");
+            Command deploy = new ("deploy", "Deploy any GitOps changes");
+            Command app = new ("app", "Application sub-commands");
 
-            add.AddCommand(new ("fluentbit"));
-            add.AddCommand(new ("grafana"));
-            add.AddCommand(new ("jumpbox"));
-            add.AddCommand(new ("prometheus"));
+            add.AddCommand(new ("all", "Add all bootstrap components"));
+            remove.AddCommand(new ("all", "Remove all bootstrap components"));
 
-            remove.AddCommand(new ("fluentbit"));
-            remove.AddCommand(new ("grafana"));
-            remove.AddCommand(new ("jumpbox"));
-            remove.AddCommand(new ("prometheus"));
+            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
 
-            app.AddCommand(new ("build"));
-            app.AddCommand(new ("check"));
-            app.AddCommand(new ("deploy"));
-            app.AddCommand(new ("init"));
-            app.AddCommand(new ("remove"));
+            if (files.Any())
+            {
+                foreach (string f in files)
+                {
+                    add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+                    remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+                }
+            }
 
-            Command appNew = new ("new");
-            appNew.AddCommand(new ("dotnet"));
+            app.AddCommand(new ("build", "Build the app"));
+            app.AddCommand(new ("check", "Check the app endpoint (if configured)"));
+            app.AddCommand(new ("deploy", "Deploy the app"));
+            app.AddCommand(new ("init", "Initialize KubeApps"));
+            app.AddCommand(new ("remove", "Remove the app via GitOps"));
+
+            Command appNew = new ("new", "Create a new application");
+            appNew.AddCommand(new ("dotnet", "Create a new Dotnet WebAPI app"));
             app.AddCommand(appNew);
 
             root.AddCommand(add);

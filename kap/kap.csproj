@@ -38,9 +38,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="src\stylecop.json" />
-    <None Include="src\.editorconfig" />
-    <Content Include="src\*.txt">
+    <AdditionalFiles Include="files\stylecop.json" />
+	<AdditionalFiles Include="src\.editorconfig" />
+    <Content Include="files\*.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="..\content\**">
