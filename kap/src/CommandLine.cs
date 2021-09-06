@@ -73,6 +73,7 @@ namespace Kube.Apps
             remove.AddCommand(new ("prometheus"));
 
             app.AddCommand(new ("build"));
+            app.AddCommand(new ("check"));
             app.AddCommand(new ("deploy"));
             app.AddCommand(new ("init"));
             app.AddCommand(new ("remove"));

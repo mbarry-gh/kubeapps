@@ -216,6 +216,14 @@ namespace Kube.Apps
 
                     break;
 
+                case "check":
+                    if (cfg.ContainsKey("nodePort") && cfg.ContainsKey("probePath"))
+                    {
+                        DoCheck(cfg["nodePort"].ToString(), cfg["probePath"].ToString());
+                    }
+
+                    break;
+
                 case "build":
                 case "deploy":
                     string img = cfg["imageName"].ToString() + ":" + cfg["imageTag"].ToString();
@@ -341,6 +349,31 @@ namespace Kube.Apps
                     string tempPath = Path.Combine(destDirName, subdir.Name);
                     DirectoryCopy(subdir.FullName, tempPath, copySubDirs);
                 }
+            }
+        }
+
+        private static bool DoCheck(string nodePort, string path)
+        {
+            string command = $"localhost:{nodePort}/{path}".Replace("//", "/");
+
+            Console.WriteLine(command);
+
+            try
+            {
+                using System.Diagnostics.Process git = new ();
+                git.StartInfo.FileName = "http";
+                git.StartInfo.Arguments = command;
+                git.StartInfo.UseShellExecute = false;
+                git.StartInfo.RedirectStandardOutput = false;
+                git.Start();
+                git.WaitForExit();
+
+                return git.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ExecGit exception: git {command}\n{ex.Message}");
+                return false;
             }
         }
 
