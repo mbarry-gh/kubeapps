@@ -51,6 +51,8 @@ namespace Kube.Apps
                         return DoAdd(res.CommandResult.Command.Name);
                     case "deploy":
                         return DoDeploy();
+                    case "remove":
+                        return DoRemove(res.CommandResult.Command.Name);
                     default:
                         break;
                 }
@@ -241,6 +243,72 @@ namespace Kube.Apps
             return 0;
         }
 
+        // handle ago add commands
+        private static int DoAdd(string cmd)
+        {
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
+            string bootstrapDir = Path.Combine(GitOpsDir, "bootstrap");
+
+            if (!Directory.Exists(bootstrapDir))
+            {
+                Directory.CreateDirectory(bootstrapDir);
+            }
+
+            if (Directory.Exists(bootstrapDir))
+            {
+                File.Copy($"deploy/{cmd}.yaml", Path.Combine(bootstrapDir, $"{cmd}.yaml"), true);
+
+                return 0;
+            }
+
+            Console.WriteLine($"{GitOpsDir} is missing");
+            return 1;
+        }
+
+        // handle ago deploy commands
+        private static int DoDeploy()
+        {
+            if (Directory.Exists(GitOpsDir))
+            {
+                Directory.SetCurrentDirectory(GitOpsDir);
+                ExecGit("pull");
+
+                if (HasGitChanges())
+                {
+                    ExecGit("add .");
+                    ExecGit("commit -m \"KubeApps Deploy\"");
+                    ExecGit("push");
+                    FluxSync();
+                }
+
+                return 0;
+            }
+
+            Console.WriteLine($"{GitOpsDir} repo is missing");
+            return 1;
+        }
+
+        // handle ago add commands
+        private static int DoRemove(string cmd)
+        {
+            string bootstrapDir = Path.Combine(GitOpsDir, "bootstrap");
+
+            if (Directory.Exists(bootstrapDir))
+            {
+                if (File.Exists(Path.Combine(bootstrapDir, $"{cmd}.yaml")))
+                {
+                    File.Delete(Path.Combine(bootstrapDir, $"{cmd}.yaml"));
+                    return DoDeploy();
+                }
+
+                return 0;
+            }
+
+            Console.WriteLine($"{GitOpsDir} is missing");
+            return 1;
+        }
+
         // copy a directory / tree
         private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
         {
@@ -274,63 +342,6 @@ namespace Kube.Apps
                     DirectoryCopy(subdir.FullName, tempPath, copySubDirs);
                 }
             }
-        }
-
-        // handle ago add commands
-        private static int DoAdd(string cmd)
-        {
-            if (cmd == "app")
-            {
-                if (Directory.Exists("kubeapps") && File.Exists("kubeapps/app.yaml"))
-                {
-                    File.Copy("kubeapps/app.yaml", Path.Combine(GitOpsDir, "app.yaml"));
-                    return 0;
-                }
-            }
-            else
-            {
-                Directory.SetCurrentDirectory(AppContext.BaseDirectory);
-
-                string bootstrapDir = Path.Combine(GitOpsDir, "bootstrap");
-
-                if (!Directory.Exists(bootstrapDir))
-                {
-                    Directory.CreateDirectory(bootstrapDir);
-                }
-
-                if (Directory.Exists(bootstrapDir))
-                {
-                    File.Copy($"deploy/{cmd}.yaml", Path.Combine(bootstrapDir, $"{cmd}.yaml"), true);
-
-                    return 0;
-                }
-            }
-
-            Console.WriteLine($"{GitOpsDir} is missing");
-            return 1;
-        }
-
-        // handle ago deploy commands
-        private static int DoDeploy()
-        {
-            if (Directory.Exists(GitOpsDir))
-            {
-                Directory.SetCurrentDirectory(GitOpsDir);
-                ExecGit("pull");
-
-                if (HasGitChanges())
-                {
-                    ExecGit("add .");
-                    ExecGit("commit -m \"KubeApps Deploy\"");
-                    ExecGit("push");
-                    FluxSync();
-                }
-
-                return 0;
-            }
-
-            Console.WriteLine($"{GitOpsDir} repo is missing");
-            return 1;
         }
 
         // check git repo for changes

@@ -58,14 +58,19 @@ namespace Kube.Apps
             };
 
             Command add = new ("add");
+            Command remove = new ("remove");
             Command deploy = new ("deploy");
             Command app = new ("app");
 
-            add.AddCommand(new ("app"));
             add.AddCommand(new ("fluentbit"));
             add.AddCommand(new ("grafana"));
             add.AddCommand(new ("jumpbox"));
             add.AddCommand(new ("prometheus"));
+
+            remove.AddCommand(new ("fluentbit"));
+            remove.AddCommand(new ("grafana"));
+            remove.AddCommand(new ("jumpbox"));
+            remove.AddCommand(new ("prometheus"));
 
             app.AddCommand(new ("build"));
             app.AddCommand(new ("deploy"));
@@ -79,6 +84,7 @@ namespace Kube.Apps
             root.AddCommand(add);
             root.AddCommand(app);
             root.AddCommand(deploy);
+            root.AddCommand(remove);
 
             // add the options
             //root.AddOption(new Option<bool>(new string[] { "--dry-run", "-d" }, "Validates and displays configuration"));
