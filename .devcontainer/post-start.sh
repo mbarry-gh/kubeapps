@@ -8,5 +8,6 @@ echo "post-start start" >> ~/status
 docker pull mcr.microsoft.com/dotnet/sdk:5.0-alpine
 docker pull mcr.microsoft.com/dotnet/aspnet:5.0-alpine
 docker pull mcr.microsoft.com/dotnet/sdk:5.0
+docker pull ghcr.io/cse-labs/jumpbox:latest
 
 echo "post-start complete" >> ~/status

@@ -1,5 +1,5 @@
 {
-	"name": "Kubernetes-in-Codespaces",
+	"name": "KubeApps",
 	"dockerFile": "Dockerfile",
 
 	// do not change these if you want Docker in Docker support

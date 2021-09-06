@@ -168,6 +168,7 @@ namespace AutoGitOps
 
                         cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
                         cfg["image"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                        cfg["imageTag"] = "local";
                     }
 
                     // create AutoGitOps files
@@ -215,7 +216,7 @@ namespace AutoGitOps
 
                 case "build":
                 case "deploy":
-                    string img = cfg["imageName"].ToString() + cfg["imageTag"].ToString();
+                    string img = cfg["imageName"].ToString() + ":" + cfg["imageTag"].ToString();
 
                     if (DockerBuild(img))
                     {
@@ -298,17 +299,22 @@ namespace AutoGitOps
             {
                 Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 
-                Console.WriteLine($"{Directory.GetCurrentDirectory()}\n{GitOpsDir}");
+                string bootstrapDir = Path.Combine(GitOpsDir, "bootstrap");
 
-                if (Directory.Exists(GitOpsDir))
+                if (!Directory.Exists(bootstrapDir))
                 {
-                    File.Copy($"deploy/{cmd}.yaml", Path.Combine(GitOpsDir, "bootstrap", $"{cmd}.yaml"), true);
+                    Directory.CreateDirectory(bootstrapDir);
+                }
+
+                if (Directory.Exists(bootstrapDir))
+                {
+                    File.Copy($"deploy/{cmd}.yaml", Path.Combine(bootstrapDir, $"{cmd}.yaml"), true);
 
                     return 0;
                 }
             }
 
-            Console.WriteLine("/workspaces/gitops repo is missing");
+            Console.WriteLine($"{GitOpsDir} is missing");
             return 1;
         }
 
