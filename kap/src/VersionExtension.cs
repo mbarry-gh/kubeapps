@@ -4,7 +4,7 @@
 using System;
 using System.Reflection;
 
-namespace AutoGitOps
+namespace Kube.Apps
 {
     /// <summary>
     /// Registers aspnet middleware handler that handles /version

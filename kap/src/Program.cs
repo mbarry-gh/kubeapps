@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 
-namespace AutoGitOps
+namespace Kube.Apps
 {
     /// <summary>
     /// Main application class
@@ -19,7 +19,7 @@ namespace AutoGitOps
     public sealed partial class App
     {
         private const string GitOpsDir = "/workspaces/gitops/gitops";
-        private const string TemplateFile = "autogitops/template.yaml";
+        private const string TemplateFile = "kubeapps/template.yaml";
 
         /// <summary>
         /// Main entry point
@@ -28,6 +28,11 @@ namespace AutoGitOps
         /// <returns>0 on success</returns>
         public static int Main(string[] args)
         {
+            if (args == null || args.Length == 0)
+            {
+                args = new string[] { "--help" };
+            }
+
             DisplayAsciiArt(args);
 
             // build the System.CommandLine.RootCommand
@@ -46,8 +51,6 @@ namespace AutoGitOps
                         return DoAdd(res.CommandResult.Command.Name);
                     case "deploy":
                         return DoDeploy();
-                    case "init":
-                        return DoInit();
                     default:
                         break;
                 }
@@ -61,7 +64,7 @@ namespace AutoGitOps
         private static Dictionary<string, object> ReadAgoConfig()
         {
             DateTime now = DateTime.UtcNow;
-            string cfgFile = "autogitops/autogitops.json";
+            string cfgFile = "kubeapps/config.json";
 
             Dictionary<string, object> cfg = new ();
 
@@ -82,7 +85,8 @@ namespace AutoGitOps
                 else
                 {
                     cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
-                    cfg["image"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                    cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                    cfg["imageTag"] = "local";
                 }
             }
 
@@ -134,7 +138,7 @@ namespace AutoGitOps
         {
             Dictionary<string, object> cfg = ReadAgoConfig();
 
-            if (cmd == "init")
+            if (cmd == "init" && !File.Exists("kubeapps/config.json"))
             {
                 IEnumerable<string> files = Directory.EnumerateFiles(".", "*.csproj");
 
@@ -165,29 +169,25 @@ namespace AutoGitOps
                     if (cmd == "dotnet")
                     {
                         DotNetNew();
-
-                        cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
-                        cfg["image"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
-                        cfg["imageTag"] = "local";
                     }
 
-                    // create AutoGitOps files
-                    if (!Directory.Exists("autogitops"))
+                    // create KubeApps files
+                    if (!Directory.Exists("kubeapps"))
                     {
-                        Directory.CreateDirectory("autogitops");
+                        Directory.CreateDirectory("kubeapps");
                     }
 
                     string ago;
 
-                    if (!File.Exists("autogitops/autogitops.json"))
+                    if (!File.Exists("kubeapps/config.json"))
                     {
-                        ago = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "dotnet/autogitops.json"))
+                        ago = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "dotnet/config.json"))
                             .Replace("{{gitops.name}}", cfg["name"].ToString())
                             .Replace("{{gitops.namespace}}", cfg["namespace"].ToString());
-                        File.WriteAllText("autogitops/autogitops.json", ago);
+                        File.WriteAllText("kubeapps/config.json", ago);
                     }
 
-                    ago = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "dotnet/app.yaml"));
+                    ago = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "dotnet/template.yaml"));
 
                     if (File.Exists(TemplateFile))
                     {
@@ -202,7 +202,7 @@ namespace AutoGitOps
                         .Replace("{{gitops.imageTag}}", cfg["imageTag"].ToString())
                         .Replace("{{gitops.port}}", cfg["port"].ToString())
                         .Replace("{{gitops.nodePort}}", cfg["nodePort"].ToString());
-                    File.WriteAllText($"autogitops/{cfg["name"]}.yaml", ago);
+                    File.WriteAllText($"kubeapps/{cfg["name"]}.yaml", ago);
 
                     if (!File.Exists("Dockerfile"))
                     {
@@ -224,7 +224,7 @@ namespace AutoGitOps
                         {
                             if (cmd == "deploy" && Directory.Exists(GitOpsDir))
                             {
-                                File.Copy($"autogitops/{cfg["name"]}.yaml", Path.Combine(GitOpsDir, $"{cfg["name"]}.yaml"), true);
+                                File.Copy($"kubeapps/{cfg["name"]}.yaml", Path.Combine(GitOpsDir, $"{cfg["name"]}.yaml"), true);
                                 DoDeploy();
 
                                 return 0;
@@ -276,22 +276,14 @@ namespace AutoGitOps
             }
         }
 
-        // handle ago init commands
-        private static int DoInit()
-        {
-            Console.WriteLine("AutoGitOps Initialized");
-
-            return 0;
-        }
-
         // handle ago add commands
         private static int DoAdd(string cmd)
         {
             if (cmd == "app")
             {
-                if (Directory.Exists("autogitops") && File.Exists("autogitops/app.yaml"))
+                if (Directory.Exists("kubeapps") && File.Exists("kubeapps/app.yaml"))
                 {
-                    File.Copy("autogitops/app.yaml", Path.Combine(GitOpsDir, "app.yaml"));
+                    File.Copy("kubeapps/app.yaml", Path.Combine(GitOpsDir, "app.yaml"));
                     return 0;
                 }
             }
@@ -329,7 +321,7 @@ namespace AutoGitOps
                 if (HasGitChanges())
                 {
                     ExecGit("add .");
-                    ExecGit("commit -m AutoGitOps");
+                    ExecGit("commit -m \"KubeApps Deploy\"");
                     ExecGit("push");
                     FluxSync();
                 }
@@ -337,40 +329,8 @@ namespace AutoGitOps
                 return 0;
             }
 
-            Console.WriteLine("/workspaces/gitops repo is missing");
+            Console.WriteLine($"{GitOpsDir} repo is missing");
             return 1;
-        }
-
-        // exec git clone
-        private static bool GitClone(string user, string pat, string repo)
-        {
-            const string runDir = "../run_autogitops";
-            bool success;
-
-            try
-            {
-                if (Directory.Exists(runDir))
-                {
-                    Directory.SetCurrentDirectory(runDir);
-                    success = ExecGit("pull");
-                }
-                else
-                {
-                    success = ExecGit($"clone https://{user}:{pat}@github.com{repo} {runDir}");
-                }
-
-                if (success)
-                {
-                    Directory.SetCurrentDirectory(runDir);
-                }
-
-                return success;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"GitClone exception: {ex.Message}");
-                return false;
-            }
         }
 
         // check git repo for changes
@@ -507,226 +467,6 @@ namespace AutoGitOps
             }
         }
 
-        // read and validate App Config from autogitops.json
-        private static Dictionary<string, object> ReadAppConfig()
-        {
-            string file = $"{Config.TemplateDir}/autogitops.json";
-
-            if (!File.Exists(file))
-            {
-                Console.WriteLine("autogitops.json file not found");
-                return null;
-            }
-
-            try
-            {
-                // deserialze the json
-                Dictionary<string, object> cfg = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(file), JsonOptions);
-
-                bool err = false;
-
-                // check for required fields
-                if (!cfg.ContainsKey("name") || string.IsNullOrWhiteSpace(cfg["name"].ToString()))
-                {
-                    Console.WriteLine("Invalid autogitops.json - name is a required field");
-                    err = true;
-                }
-
-                if (!cfg.ContainsKey("namespace") || string.IsNullOrWhiteSpace(cfg["namespace"].ToString()))
-                {
-                    Console.WriteLine("Invalid autogitops.json - namespace is a required field");
-                    err = true;
-                }
-
-                if (!cfg.ContainsKey("targets"))
-                {
-                    Console.WriteLine("Invalid autogitops.json - targets is required array");
-                    err = true;
-                }
-
-                if (err)
-                {
-                    return null;
-                }
-
-                string t = cfg["targets"].ToString().Trim();
-
-                if (string.IsNullOrWhiteSpace(t) ||
-                    !t.StartsWith('[') ||
-                    !t.EndsWith(']'))
-                {
-                    Console.WriteLine("Invalid autogitops.json - targets is required array");
-                    return null;
-                }
-
-                // extract and remove the targets
-                targets = JsonSerializer.Deserialize<List<string>>(t);
-                cfg.Remove("targets");
-
-                // add version and deploy if missing
-                if (!cfg.ContainsKey("version"))
-                {
-                    cfg.Add("version", Config.ContainerVersion);
-                }
-
-                if (!cfg.ContainsKey("deploy"))
-                {
-                    cfg.Add("deploy", Now.ToString("yy-MM-dd-HH-mm-ss"));
-                }
-
-                return cfg;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception reading autogitops.json: {ex.Message}");
-                return null;
-            }
-        }
-
-        // set working directory to /deploy
-        private static bool SetDeployDir()
-        {
-            string dir = Config.OutputDir;
-
-            // handle running in debugger
-            if (!Directory.Exists(dir))
-            {
-                Console.WriteLine("deploy directory doesn't exist");
-                return false;
-            }
-
-            Directory.SetCurrentDirectory(dir);
-
-            return true;
-        }
-
-        // delete existing deployments
-        private static void DeleteDeployments()
-        {
-            // delete all deployment files
-            foreach (string target in Directory.EnumerateDirectories("."))
-            {
-                string fn = $"{target}/{appConfig["namespace"]}";
-
-                if (Directory.Exists(fn))
-                {
-                    fn = $"{target}/{appConfig["namespace"]}/{appConfig["name"]}.yaml";
-
-                    if (File.Exists(fn))
-                    {
-                        File.Delete(fn);
-                    }
-                }
-            }
-        }
-
-        // create new deployments
-        private static bool CreateDeployments(bool dryRun)
-        {
-            Dictionary<string, object> config;
-            string fileName;
-            string yaml;
-            string[] lines;
-
-            try
-            {
-                if (targets.Count > 0)
-                {
-                    string templFile;
-
-                    foreach (string target in targets)
-                    {
-                        // load config.json for target cluster
-                        config = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText($"{target}/config.json"), JsonOptions);
-
-                        templFile = "autogitops.yaml";
-
-                        // check cluster config for template file name
-                        if (config.ContainsKey("template"))
-                        {
-                            templFile = config["template"].ToString().Trim();
-
-                            if (string.IsNullOrWhiteSpace(templFile))
-                            {
-                                Console.WriteLine($"Invalid template in {target}");
-                                return false;
-                            }
-                        }
-
-                        // read the deployment template
-                        yaml = File.ReadAllText($"{Config.TemplateDir}/{templFile}");
-
-                        // replace each app config value
-                        foreach (KeyValuePair<string, object> kv in appConfig)
-                        {
-                            yaml = yaml.Replace("{{gitops." + kv.Key + "}}", kv.Value.ToString())
-                                .Replace("{{ gitops." + kv.Key + " }}", kv.Value.ToString());
-                        }
-
-                        // replace each cluster config value
-                        foreach (KeyValuePair<string, object> kv in config)
-                        {
-                            yaml = yaml.Replace("{{gitops.config." + kv.Key + "}}", kv.Value.ToString())
-                                .Replace("{{ gitops.config." + kv.Key + " }}", kv.Value.ToString());
-                        }
-
-                        // check the yaml
-                        lines = yaml.Split('\n');
-                        bool err = false;
-
-                        foreach (string line in lines)
-                        {
-                            if (line.Contains("{{gitops.") || line.Contains("{{ gitops."))
-                            {
-                                if (!err)
-                                {
-                                    Console.WriteLine("Error in gitops.yaml");
-                                }
-
-                                err = true;
-
-                                Console.WriteLine(line);
-                            }
-                        }
-
-                        if (err)
-                        {
-                            return false;
-                        }
-
-                        if (!dryRun)
-                        {
-                            // create the namespace directory
-                            fileName = $"{target}/{appConfig["namespace"]}";
-                            if (!Directory.Exists(fileName))
-                            {
-                                Directory.CreateDirectory(fileName);
-                            }
-
-                            // create namespace.yaml
-                            fileName = $"{fileName}/namespace.yaml";
-                            if (!File.Exists(fileName))
-                            {
-                                File.WriteAllText(fileName, $"apiVersion: v1\nkind: Namespace\nmetadata:\n  labels:\n    name: {appConfig["namespace"]}\n  name: {appConfig["namespace"]}\n");
-                            }
-
-                            // write file
-                            fileName = $"{target}/{appConfig["namespace"]}/{appConfig["name"]}.yaml";
-                            File.WriteAllText(fileName, yaml);
-                        }
-                    }
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception creating deployments: {ex.Message}");
-            }
-
-            return false;
-        }
-
         // display Ascii Art
         private static void DisplayAsciiArt(string[] args)
         {
@@ -740,7 +480,7 @@ namespace AutoGitOps
                     cmd.Contains("--dry-run")))
                 {
                     string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                    string file = $"{path}/Core/ascii-art.txt";
+                    string file = $"{path}/src/ascii-art.txt";
 
                     try
                     {
@@ -755,17 +495,8 @@ namespace AutoGitOps
 
                                 foreach (string line in lines)
                                 {
-                                    Console.ForegroundColor = ConsoleColor.DarkBlue;
-                                    if (line.Length > 26)
-                                    {
-                                        Console.Write(line[0..25]);
-                                        Console.ForegroundColor = ConsoleColor.DarkMagenta;
-                                        Console.WriteLine(line[25..]);
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine(line);
-                                    }
+                                    Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                                    Console.WriteLine(line);
                                 }
 
                                 Console.ResetColor();

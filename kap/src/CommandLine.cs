@@ -5,11 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace AutoGitOps
+namespace Kube.Apps
 {
     /// <summary>
     /// Main application class
@@ -28,8 +27,8 @@ namespace AutoGitOps
             DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        private static Dictionary<string, object> appConfig = null;
-        private static List<string> targets = null;
+        // private static Dictionary<string, object> appConfig = null;
+        // private static List<string> targets = null;
 
         public static Config Config { get; set; } = null;
 
@@ -45,124 +44,6 @@ namespace AutoGitOps
             return 1;
         }
 
-        public static int OldRunApp(Config config)
-        {
-            if (string.IsNullOrWhiteSpace(Config.ContainerVersion))
-            {
-                Config.ContainerVersion = Now.ToString("MMdd-HHmm");
-            }
-
-            try
-            {
-                string currentDir = Directory.GetCurrentDirectory();
-
-                if (!string.IsNullOrWhiteSpace(config.TemplateDir))
-                {
-                    // get full path to template directory
-                    Directory.SetCurrentDirectory(config.TemplateDir);
-                    config.TemplateDir = Directory.GetCurrentDirectory();
-                    Directory.SetCurrentDirectory(currentDir);
-                }
-
-                if (!config.LocalDev)
-                {
-                    // display dry run message
-                    if (config.DryRun)
-                    {
-                        return DoDryRun();
-                    }
-
-                    // clone the repo
-                    if (!GitClone(config.AgoUser, config.AgoPat, config.AgoRepo))
-                    {
-                        return -1;
-                    }
-                }
-
-                // set directory to output dir
-                if (!SetDeployDir())
-                {
-                    return -1;
-                }
-
-                // save full path
-                config.OutputDir = Directory.GetCurrentDirectory();
-
-                // read config
-                appConfig = ReadAppConfig();
-                if (appConfig == null)
-                {
-                    return -1;
-                }
-
-                if (config.LocalDev)
-                {
-                    // display dry run message
-                    if (config.DryRun)
-                    {
-                        DoDryRun();
-                        Console.WriteLine("\n");
-                    }
-
-                    // try the deployment with dryRun
-                    bool success = CreateDeployments(true);
-
-                    if (!success)
-                    {
-                        return -1;
-                    }
-
-                    if (config.DryRun)
-                    {
-                        return 0;
-                    }
-                }
-
-                // delete deployments
-                DeleteDeployments();
-
-                // create new deployments
-                if (!CreateDeployments(false))
-                {
-                    return -1;
-                }
-
-                if (config.LocalDev)
-                {
-                    return 0;
-                }
-
-                if (ExecGit("pull"))
-                {
-                    if (ExecGit("config --global user.email bartr@microsoft.com"))
-                    {
-                        if (ExecGit("config --global user.name bartr"))
-                        {
-                            if (ExecGit("add ."))
-                            {
-                                if (ExecGit("commit -am \"AutoGitOps deploy\""))
-                                {
-                                    // ignore nothing to push error
-                                    ExecGit("push");
-                                    return 0;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // failed
-                return -1;
-            }
-            catch (Exception ex)
-            {
-                // end app on error
-                Console.WriteLine($"Exception in {nameof(RunApp)}: {ex.Message}");
-
-                return -1;
-            }
-        }
-
         /// <summary>
         /// Build the RootCommand for parsing
         /// </summary>
@@ -171,17 +52,15 @@ namespace AutoGitOps
         {
             RootCommand root = new ()
             {
-                Name = "AutoGitOps",
+                Name = "KubeApps",
                 Description = "Generate GitOps files for Flux",
                 TreatUnmatchedTokensAsErrors = true,
             };
 
-            Command init = new ("init");
             Command add = new ("add");
             Command deploy = new ("deploy");
             Command app = new ("app");
 
-            init.AddCommand(new ("local"));
             add.AddCommand(new ("app"));
             add.AddCommand(new ("fluentbit"));
             add.AddCommand(new ("grafana"));
@@ -199,17 +78,9 @@ namespace AutoGitOps
 
             root.AddCommand(add);
             root.AddCommand(app);
-            root.AddCommand(init);
             root.AddCommand(deploy);
 
             // add the options
-            //root.AddOption(EnvVarOption(new string[] { "--ago-user", "-u" }, "GitHub nser name", string.Empty));
-            //root.AddOption(EnvVarOption(new string[] { "--ago-pat", "-p" }, "GitHub Personal Access Token", string.Empty));
-            //root.AddOption(EnvVarOption(new string[] { "--ago-repo", "-r" }, "GitHub repo path (i.e. /user/gitops)", string.Empty));
-            //root.AddOption(EnvVarOption(new string[] { "--container-version", "-c" }, "Container version number", string.Empty));
-            //root.AddOption(EnvVarOption(new string[] { "--local-dev", "-l" }, "Run locally for debugging", false));
-            //root.AddOption(EnvVarOption(new string[] { "--template-dir", "-t" }, "Template directory", "autogitops"));
-            //root.AddOption(EnvVarOption(new string[] { "--output-dir", "-o" }, "Output directory", "deploy"));
             //root.AddOption(new Option<bool>(new string[] { "--dry-run", "-d" }, "Validates and displays configuration"));
 
             //// validate dependencies

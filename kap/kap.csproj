@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <RootNamespace>Auto.GitOps</RootNamespace>
+    <RootNamespace>Kube.Apps</RootNamespace>
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(`MMdd-HHmm`))</VersionSuffix>
     <Company>Microsoft Corporation</Company>
@@ -38,9 +38,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="stylecop.json" />
-    <None Include=".editorconfig" />
-    <Content Include="Core\*.txt">
+    <AdditionalFiles Include="src\stylecop.json" />
+    <None Include="src\.editorconfig" />
+    <Content Include="src\*.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="..\content\**">
