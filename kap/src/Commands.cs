@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
 
@@ -14,8 +16,10 @@ namespace Kube.Apps
     public sealed partial class App
     {
         // handle ago app commands
-        private static int DoApp(string cmd)
+        private static int DoApp(ParseResult parse)
         {
+            string cmd = parse.CommandResult.Command.Name;
+
             Dictionary<string, object> cfg = Config.ReadAgoConfig();
 
             if (cmd == "init" && !File.Exists(Dirs.ConfigFile))
@@ -31,6 +35,12 @@ namespace Kube.Apps
 
             switch (cmd)
             {
+                case "logs":
+                    string args = $"logs -n {cfg["namespace"]} -l app={cfg["name"]}";
+
+                    ShellExec.Run("kubectl", args);
+                    break;
+
                 case "remove":
                     // delete the file from GitOps
                     string file = Path.Combine(Dirs.GitOpsDir, $"{cfg["name"]}.yaml");
@@ -48,7 +58,16 @@ namespace Kube.Apps
                     // create new dotnet app
                     if (cmd == "dotnet")
                     {
-                        DotNetNew();
+                        if (parse.UnmatchedTokens.Count > 0)
+                        {
+                            string dir = parse.UnmatchedTokens[0].Trim();
+                            Directory.CreateDirectory(dir);
+                            Directory.SetCurrentDirectory(dir);
+                            cfg["name"] = dir;
+                            cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                        }
+
+                        ShellExec.Run("dotnet", "new webapi --no-https");
                     }
 
                     // create KubeApps files
@@ -106,9 +125,9 @@ namespace Kube.Apps
                 case "deploy":
                     string img = cfg["imageName"].ToString() + ":" + cfg["imageTag"].ToString();
 
-                    if (DockerBuild(img))
+                    if (ShellExec.Run("docker", $"build . -t {img}"))
                     {
-                        if (DockerPush(img))
+                        if (ShellExec.Run("docker", $"push {img}"))
                         {
                             if (cmd == "deploy" && Directory.Exists(Dirs.GitOpsDir))
                             {
@@ -174,14 +193,14 @@ namespace Kube.Apps
             if (Directory.Exists(Dirs.GitOpsDir))
             {
                 Directory.SetCurrentDirectory(Dirs.GitOpsDir);
-                ExecGit("pull");
+                ShellExec.Run("git", "pull");
 
-                if (HasGitChanges())
+                if (ShellExec.HasGitChanges())
                 {
-                    ExecGit("add .");
-                    ExecGit("commit -m \"KubeApps Deploy\"");
-                    ExecGit("push");
-                    FluxSync();
+                    ShellExec.Run("git", "add .");
+                    ShellExec.Run("git", "commit -m \"KubeApps Deploy\"");
+                    ShellExec.Run("git", "push");
+                    ShellExec.Run("fluxctl", "sync");
                 }
 
                 return 0;

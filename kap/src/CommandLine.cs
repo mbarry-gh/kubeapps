@@ -45,7 +45,7 @@ namespace Kube.Apps
             {
                 Name = "KubeApps",
                 Description = "Generate GitOps files for Flux",
-                TreatUnmatchedTokensAsErrors = true,
+                TreatUnmatchedTokensAsErrors = false,
             };
 
             Command add = new ("add", "Add bootstrap components");
@@ -71,6 +71,7 @@ namespace Kube.Apps
             app.AddCommand(new ("check", "Check the app endpoint (if configured)"));
             app.AddCommand(new ("deploy", "Deploy the app"));
             app.AddCommand(new ("init", "Initialize KubeApps"));
+            app.AddCommand(new ("logs", "Get the Kubernetes app logs"));
             app.AddCommand(new ("remove", "Remove the app via GitOps"));
 
             Command appNew = new ("new", "Create a new application");

@@ -44,7 +44,7 @@ namespace Kube.Apps
                 switch (res.RootCommandResult.Children[0].Symbol.Name)
                 {
                     case "app":
-                        return DoApp(res.CommandResult.Command.Name);
+                        return DoApp(res);
                     case "add":
                         return DoAdd(res.CommandResult.Command.Name);
                     case "deploy":
@@ -72,8 +72,8 @@ namespace Kube.Apps
             {
                 Directory.CreateDirectory(Dirs.KapHome);
 
-                DirectoryCopy(Dirs.KapBootstrapDir, Path.Combine(Dirs.KapHome, "bootstrap"), true);
-                DirectoryCopy(Dirs.KapDotnetDir, Path.Combine(Dirs.KapHome, "dotnet"), true);
+                DirectoryCopy(Path.Combine(Dirs.KapBase, "bootstrap"), Dirs.KapBootstrapDir, true);
+                DirectoryCopy(Path.Combine(Dirs.KapBase, "dotnet"), Dirs.KapDotnetDir, true);
             }
         }
 

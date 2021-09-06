@@ -1,8 +1,4 @@
-.PHONY: help build
-
-help :
-	@echo "Usage:"
-	@echo "   make build     - build and install local nuget package"
+.PHONY: build
 
 build :
 	-dotnet tool uninstall -g kubeapps
