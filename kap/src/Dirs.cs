@@ -27,5 +27,13 @@ namespace Kube.Apps
         public static string KapBootstrapDir => Path.Combine(KapHome, "bootstrap");
 
         public static string KapDotnetDir => Path.Combine(KapHome, "dotnet");
+
+        public static bool IsAppDir
+        {
+            get
+            {
+                return Directory.Exists("./kubeapps") && File.Exists("./kubeapps/config.json");
+            }
+        }
     }
 }

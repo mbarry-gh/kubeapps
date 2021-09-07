@@ -47,11 +47,8 @@ namespace Kube.Apps
                 TreatUnmatchedTokensAsErrors = false,
             };
 
-            Command add = new ("add", "Add bootstrap components");
-            Command remove = new ("remove", "Remove bootstrap components");
-            Command deploy = new ("deploy", "Deploy any GitOps changes");
-            Command app = new ("app", "Application sub-commands");
-            Command appNew = new ("new", "Create a new app");
+            Command add = new ("add", "Add apps and components");
+            Command remove = new ("remove", "Remove apps and components");
 
             add.AddCommand(new ("all", "Add all bootstrap components"));
             remove.AddCommand(new ("all", "Remove all bootstrap components"));
@@ -67,19 +64,16 @@ namespace Kube.Apps
                 }
             }
 
-            app.AddCommand(new ("build", "Build the app"));
-            app.AddCommand(new ("check", "Check the app endpoint (if configured)"));
-            app.AddCommand(new ("deploy", "Deploy the app"));
-            app.AddCommand(new ("init", "Initialize KubeApps"));
-            app.AddCommand(new ("logs", "Get the Kubernetes app logs"));
-            app.AddCommand(new ("remove", "Remove the app via GitOps"));
-
+            Command appNew = new ("new", "Create a new app");
             appNew.AddCommand(new ("dotnet", "Create a new Dotnet WebAPI app"));
 
             root.AddCommand(add);
-            root.AddCommand(app);
+            root.AddCommand(new ("build", "Build the app"));
+            root.AddCommand(new ("check", "Check the app endpoint (if configured)"));
+            root.AddCommand(new ("deploy", "Deploy any GitOps changes"));
+            root.AddCommand(new ("init", "Initialize KubeApps"));
+            root.AddCommand(new ("logs", "Get the Kubernetes app logs"));
             root.AddCommand(appNew);
-            root.AddCommand(deploy);
             root.AddCommand(remove);
 
             // add the options

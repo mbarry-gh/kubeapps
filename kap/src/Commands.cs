@@ -17,12 +17,9 @@ namespace Kube.Apps
     {
         private static readonly Dictionary<string, object> KapConfig = Config.ReadKapConfig();
 
-        // handle app commands
-        private static int DoApp(ParseResult parse)
+        private static int DoInit()
         {
-            string cmd = parse.CommandResult.Command.Name;
-
-            if (cmd == "init" && !File.Exists(Dirs.ConfigFile))
+            if (!File.Exists(Dirs.ConfigFile))
             {
                 IEnumerable<string> files = Directory.EnumerateFiles(".", "*.csproj");
 
@@ -33,66 +30,6 @@ namespace Kube.Apps
                 }
             }
 
-            switch (cmd)
-            {
-                case "logs":
-                    string args = $"logs -n {KapConfig["namespace"]} -l app={KapConfig["name"]}";
-
-                    ShellExec.Run("kubectl", args);
-                    break;
-
-                case "remove":
-                    // delete the file from GitOps
-                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
-
-                    if (File.Exists(file))
-                    {
-                        File.Delete(file);
-                        DoDeploy();
-                    }
-
-                    break;
-
-                case "init":
-                    return DoInit();
-
-                case "check":
-                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readinessProbe"))
-                    {
-                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readinessProbe"].ToString());
-                    }
-
-                    break;
-
-                case "build":
-                case "deploy":
-                    string img = KapConfig["imageName"].ToString() + ":" + KapConfig["imageTag"].ToString();
-
-                    if (ShellExec.Run("docker", $"build . -t {img}"))
-                    {
-                        if (ShellExec.Run("docker", $"push {img}"))
-                        {
-                            if (cmd == "deploy" && Directory.Exists(Dirs.GitOpsDir))
-{
-                                File.Copy($"kubeapps/{KapConfig["namespace"]}-{KapConfig["name"]}.yaml", Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
-                                DoDeploy();
-
-                                return 0;
-                            }
-                        }
-                    }
-
-                    break;
-
-                default:
-                    break;
-            }
-
-            return 0;
-        }
-
-        private static int DoInit()
-        {
             // create KubeApps files
             if (!Directory.Exists("kubeapps"))
             {
@@ -197,24 +134,37 @@ namespace Kube.Apps
                     Directory.CreateDirectory(Dirs.GitOpsBootstrapDir);
                 }
 
-                if (Directory.Exists(Dirs.GitOpsBootstrapDir))
+                if (string.IsNullOrWhiteSpace(cmd) && Dirs.IsAppDir)
                 {
-                    if (cmd == "all")
-                    {
-                        IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+                    // delete the file from GitOps
+                    string file = Path.Combine("kubeapps", $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
 
-                        foreach (string f in files)
+                    if (File.Exists(file))
+                    {
+                        File.Copy(file, Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
+                    }
+                }
+                else
+                {
+                    if (Directory.Exists(Dirs.GitOpsBootstrapDir))
+                    {
+                        if (cmd == "all")
                         {
-                            File.Copy(f, Path.Combine(Dirs.GitOpsBootstrapDir, Path.GetFileName(f)), true);
+                            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+
+                            foreach (string f in files)
+                            {
+                                File.Copy(f, Path.Combine(Dirs.GitOpsBootstrapDir, Path.GetFileName(f)), true);
+                            }
+                        }
+                        else
+                        {
+                            File.Copy(Path.Combine(Dirs.KapBootstrapDir, $"{cmd}.yaml"), Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"), true);
                         }
                     }
-                    else
-                    {
-                        File.Copy(Path.Combine(Dirs.KapBootstrapDir, $"{cmd}.yaml"), Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"), true);
-                    }
-
-                    return 0;
                 }
+
+                return 0;
             }
 
             Console.WriteLine($"{Dirs.GitOpsBase} is missing");
@@ -247,22 +197,38 @@ namespace Kube.Apps
         // handle remove commands
         private static int DoRemove(string cmd)
         {
-            if (Directory.Exists(Dirs.GitOpsBootstrapDir))
+            if (Directory.Exists(Dirs.GitOpsDir))
             {
-                if (cmd == "all")
+                if (string.IsNullOrWhiteSpace(cmd) && Dirs.IsAppDir)
                 {
-                    IEnumerable<string> files = Directory.EnumerateFiles(Dirs.GitOpsBootstrapDir, "*.*");
+                    // delete the file from GitOps
+                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
 
-                    foreach (string f in files)
+                    if (File.Exists(file))
                     {
-                        File.Delete(f);
+                        File.Delete(file);
                     }
                 }
                 else
                 {
-                    if (File.Exists(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml")))
+                    if (Directory.Exists(Dirs.GitOpsBootstrapDir))
                     {
-                        File.Delete(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"));
+                        if (cmd == "all")
+                        {
+                            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.GitOpsBootstrapDir, "*.*");
+
+                            foreach (string f in files)
+                            {
+                                File.Delete(f);
+                            }
+                        }
+                        else
+                        {
+                            if (File.Exists(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml")))
+                            {
+                                File.Delete(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"));
+                            }
+                        }
                     }
                 }
 

@@ -43,10 +43,59 @@ namespace Kube.Apps
             {
                 switch (res.RootCommandResult.Children[0].Symbol.Name)
                 {
-                    case "app":
-                        return DoApp(res);
                     case "add":
                         return DoAdd(res.CommandResult.Command.Name);
+                    case "build":
+                        if (Dirs.IsAppDir)
+                        {
+                            string img = KapConfig["imageName"].ToString() + ":" + KapConfig["imageTag"].ToString();
+
+                            if (ShellExec.Run("docker", $"build . -t {img}"))
+                            {
+                                if (ShellExec.Run("docker", $"push {img}"))
+                                {
+                                    return 0;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("./kubeapps/config.json not found");
+                        }
+
+                        return 0;
+
+                    case "check":
+                        if (Dirs.IsAppDir)
+                        {
+                            if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readinessProbe"))
+                            {
+                                DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readinessProbe"].ToString());
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("./kubeapps/config.json not found");
+                        }
+
+                        return 0;
+
+                    case "init":
+                        return DoInit();
+
+                    case "logs":
+                        if (Dirs.IsAppDir)
+                        {
+                            string cmd = $"logs -n {KapConfig["namespace"]} -l app={KapConfig["name"]}";
+                            ShellExec.Run("kubectl", cmd);
+                        }
+                        else
+                        {
+                            Console.WriteLine("./kubeapps/config.json not found");
+                        }
+
+                        return 0;
+
                     case "deploy":
                         return DoDeploy();
                     case "new":
