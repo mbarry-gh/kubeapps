@@ -1,10 +1,11 @@
 {
-    "name": "{{gitops.name}}",
-    "namespace": "{{gitops.namespace}}",
-    "imageName": "k3d-registry.localhost:5000/{{gitops.imageName}}",
-    "imageTag": "{{gitops.imageTag}}",
-    "port": {{gitops.port}},
-    "nodePort": {{gitops.nodePort}},
-    "probePath": "{{gitops.probePath}}",
-    "targets": [ "local" ] 
+  "name": "{{gitops.name}}",
+  "namespace": "{{gitops.namespace}}",
+  "imageName": "k3d-registry.localhost:5000/{{gitops.imageName}}",
+  "imageTag": "{{gitops.imageTag}}",
+  "port": "{{gitops.port}}",
+  "nodePort": "{{gitops.nodePort}}",
+  "readyProbe": "{{gitops.readyProbe}}",
+  "livenessProbe": "{{gitops.livenessProbe}}",
+  "targets": [ "local" ]
 }
