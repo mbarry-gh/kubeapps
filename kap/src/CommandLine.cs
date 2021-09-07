@@ -50,19 +50,19 @@ namespace Kube.Apps
             Command add = new ("add", "Add apps and components");
             Command remove = new ("remove", "Remove apps and components");
 
-            add.AddCommand(new ("all", "Add all bootstrap components"));
-            remove.AddCommand(new ("all", "Remove all bootstrap components"));
+            //add.AddCommand(new ("all", "Add all bootstrap components"));
+            //remove.AddCommand(new ("all", "Remove all bootstrap components"));
 
-            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+            //IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
 
-            if (files.Any())
-            {
-                foreach (string f in files)
-                {
-                    add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-                    remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-                }
-            }
+            //if (files.Any())
+            //{
+            //    foreach (string f in files)
+            //    {
+            //        add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+            //        remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+            //    }
+            //}
 
             Command appNew = new ("new", "Create a new app");
             appNew.AddCommand(new ("dotnet", "Create a new Dotnet WebAPI app"));

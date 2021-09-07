@@ -120,28 +120,47 @@ namespace Kube.Apps
         }
 
         // handle add commands
-        private static int DoAdd(string cmd)
+        private static int DoAdd(ParseResult res)
         {
+            string cmd = string.Empty;
+
+            if (res.UnmatchedTokens.Count > 0)
+            {
+                cmd = res.UnmatchedTokens[0];
+            }
+
             if (Directory.Exists(Dirs.GitOpsBase))
             {
-                if (!Directory.Exists(Dirs.GitOpsDir))
+                if (string.IsNullOrWhiteSpace(cmd))
                 {
-                    Directory.CreateDirectory(Dirs.GitOpsDir);
-                }
-
-                if (!Directory.Exists(Dirs.GitOpsBootstrapDir))
-                {
-                    Directory.CreateDirectory(Dirs.GitOpsBootstrapDir);
-                }
-
-                if (string.IsNullOrWhiteSpace(cmd) && Dirs.IsAppDir)
-                {
-                    // delete the file from GitOps
-                    string file = Path.Combine("kubeapps", $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
-
-                    if (File.Exists(file))
+                    if (!Dirs.IsAppDir)
                     {
-                        File.Copy(file, Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
+                        DoInit();
+                    }
+
+                    if (Dirs.IsAppDir)
+                    {
+                        // copy the file to GitOps
+                        string file = Path.Combine("kubeapps", $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
+
+                        if (!File.Exists(file))
+                        {
+                            DoInit();
+                        }
+
+                        if (File.Exists(file))
+                        {
+                            File.Copy(file, Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"unable to find or generate {file}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Could not find kubeapps/config.json");
+                        return 1;
                     }
                 }
                 else
@@ -194,19 +213,86 @@ namespace Kube.Apps
             return 1;
         }
 
-        // handle remove commands
-        private static int DoRemove(string cmd)
+        // docker buil the app
+        private static int DoBuild()
         {
+            if (Dirs.IsAppDir)
+            {
+                string img = KapConfig["imageName"].ToString() + ":" + KapConfig["imageTag"].ToString();
+
+                if (ShellExec.Run("docker", $"build . -t {img}"))
+                {
+                    if (ShellExec.Run("docker", $"push {img}"))
+                    {
+                        return 0;
+                    }
+                }
+
+                Console.WriteLine("docker build failed");
+                return 1;
+            }
+
+            Console.WriteLine("./kubeapps/config.json not found");
+            return 1;
+        }
+
+        // check the app endpoint
+        private static int DoCheck()
+        {
+            if (Dirs.IsAppDir)
+            {
+                if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readinessProbe"))
+                {
+                    DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readinessProbe"].ToString());
+                }
+            }
+            else
+            {
+                Console.WriteLine("./kubeapps/config.json not found");
+            }
+
+            return 0;
+        }
+
+        // show the kubernetes logs for the app
+        private static int DoLogs()
+        {
+            if (Dirs.IsAppDir)
+            {
+                string cmd = $"logs -n {KapConfig["namespace"]} -l app={KapConfig["name"]}";
+                ShellExec.Run("kubectl", cmd);
+            }
+            else
+            {
+                Console.WriteLine("./kubeapps/config.json not found");
+            }
+
+            return 0;
+        }
+
+        // handle remove commands
+        private static int DoRemove(ParseResult res)
+        {
+            string cmd = string.Empty;
+
+            if (res.UnmatchedTokens.Count > 0)
+            {
+                cmd = res.UnmatchedTokens[0];
+            }
+
             if (Directory.Exists(Dirs.GitOpsDir))
             {
-                if (string.IsNullOrWhiteSpace(cmd) && Dirs.IsAppDir)
+                if (string.IsNullOrWhiteSpace(cmd))
                 {
-                    // delete the file from GitOps
-                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
-
-                    if (File.Exists(file))
+                    if (Dirs.IsAppDir)
                     {
-                        File.Delete(file);
+                        // delete the file from GitOps
+                        string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
+
+                        if (File.Exists(file))
+                        {
+                            File.Delete(file);
+                        }
                     }
                 }
                 else

@@ -33,83 +33,84 @@ namespace Kube.Apps
 
             InitKap();
 
-            // build the System.CommandLine.RootCommand
+            // build and parse the command line args
             RootCommand root = BuildRootCommand();
-
             ParseResult res = root.Parse(args);
 
+            // short circuit errors, help and version
+            if (res.Errors.Count > 0 ||
+                res.RootCommandResult.Children.Count == 0 ||
+                args.Contains("-h") ||
+                args.Contains("--help") ||
+                args.Contains("--version"))
+            {
+                // run the app
+                root.Handler = CommandHandler.Create<Config>(RunApp);
+                return root.Invoke(args);
+            }
+
+            // verify GitOps repo exists
+            if (!Directory.Exists(Dirs.GitOpsBase))
+            {
+                Console.Error.WriteLine($"{Dirs.GitOpsBase} not found\n\n  Please clone a git repo to {Dirs.GitOpsBase} and try again");
+                return 1;
+            }
+
+            // create directories if needed
+            if (!Directory.Exists(Dirs.GitOpsDir))
+            {
+                Directory.CreateDirectory(Dirs.GitOpsDir);
+            }
+
+            if (!Directory.Exists(Dirs.GitOpsBootstrapDir))
+            {
+                Directory.CreateDirectory(Dirs.GitOpsBootstrapDir);
+            }
+
+            // fail if directories don't exist
+            if (!Directory.Exists(Dirs.GitOpsDir) || !Directory.Exists(Dirs.GitOpsBootstrapDir))
+            {
+                Console.WriteLine("unable to create GitOps directory");
+                return 1;
+            }
+
             // handle the commands
-            if (res.Errors.Count == 0 && res.RootCommandResult.Children.Count > 0)
+            if (res.RootCommandResult.Children.Count > 0)
             {
                 switch (res.RootCommandResult.Children[0].Symbol.Name)
                 {
                     case "add":
-                        return DoAdd(res.CommandResult.Command.Name);
+                        return DoAdd(res);
+
                     case "build":
-                        if (Dirs.IsAppDir)
-                        {
-                            string img = KapConfig["imageName"].ToString() + ":" + KapConfig["imageTag"].ToString();
-
-                            if (ShellExec.Run("docker", $"build . -t {img}"))
-                            {
-                                if (ShellExec.Run("docker", $"push {img}"))
-                                {
-                                    return 0;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("./kubeapps/config.json not found");
-                        }
-
-                        return 0;
+                        return DoBuild();
 
                     case "check":
-                        if (Dirs.IsAppDir)
-                        {
-                            if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readinessProbe"))
-                            {
-                                DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readinessProbe"].ToString());
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("./kubeapps/config.json not found");
-                        }
+                        return DoCheck();
 
-                        return 0;
+                    case "deploy":
+                        return DoDeploy();
 
                     case "init":
                         return DoInit();
 
                     case "logs":
-                        if (Dirs.IsAppDir)
-                        {
-                            string cmd = $"logs -n {KapConfig["namespace"]} -l app={KapConfig["name"]}";
-                            ShellExec.Run("kubectl", cmd);
-                        }
-                        else
-                        {
-                            Console.WriteLine("./kubeapps/config.json not found");
-                        }
+                        return DoLogs();
 
-                        return 0;
-
-                    case "deploy":
-                        return DoDeploy();
                     case "new":
                         return DoNew(res);
+
                     case "remove":
-                        return DoRemove(res.CommandResult.Command.Name);
+                        return DoRemove(res);
+
                     default:
                         break;
                 }
             }
 
-            // run the app
-            root.Handler = CommandHandler.Create<Config>(RunApp);
-            return root.Invoke(args);
+            // this should never happen
+            Console.WriteLine("command line handler not found\n\n  Please report this as a bug");
+            return 1;
         }
 
         private static void InitKap()
