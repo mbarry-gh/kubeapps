@@ -21,19 +21,9 @@ namespace Kube.Apps
             DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        public string Init { get; set; }
-        public string Add { get; set; }
-        public string Deploy { get; set; }
-        public string AgoUser { get; set; }
-        public string AgoPat { get; set; }
-        public string AgoRepo { get; set; }
-        public string ContainerVersion { get; set; }
-        public bool LocalDev { get; set; }
-        public string TemplateDir { get; set; }
-        public string OutputDir { get; set; }
         public bool DryRun { get; set; }
 
-        public static Dictionary<string, object> ReadAgoConfig()
+        public static Dictionary<string, object> ReadKapConfig()
         {
             DateTime now = DateTime.UtcNow;
 
