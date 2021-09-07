@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -15,12 +14,12 @@ namespace Kube.Apps
     /// </summary>
     public sealed partial class App
     {
-        // handle ago app commands
+        private static readonly Dictionary<string, object> KapConfig = Config.ReadKapConfig();
+
+        // handle app commands
         private static int DoApp(ParseResult parse)
         {
             string cmd = parse.CommandResult.Command.Name;
-
-            Dictionary<string, object> cfg = Config.ReadAgoConfig();
 
             if (cmd == "init" && !File.Exists(Dirs.ConfigFile))
             {
@@ -36,14 +35,14 @@ namespace Kube.Apps
             switch (cmd)
             {
                 case "logs":
-                    string args = $"logs -n {cfg["namespace"]} -l app={cfg["name"]}";
+                    string args = $"logs -n {KapConfig["namespace"]} -l app={KapConfig["name"]}";
 
                     ShellExec.Run("kubectl", args);
                     break;
 
                 case "remove":
                     // delete the file from GitOps
-                    string file = Path.Combine(Dirs.GitOpsDir, $"{cfg["name"]}.yaml");
+                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["name"]}.yaml");
 
                     if (File.Exists(file))
                     {
@@ -53,77 +52,20 @@ namespace Kube.Apps
 
                     break;
 
-                case "dotnet":
                 case "init":
-                    // create new dotnet app
-                    if (cmd == "dotnet")
-                    {
-                        if (parse.UnmatchedTokens.Count > 0)
-                        {
-                            string dir = parse.UnmatchedTokens[0].Trim();
-                            Directory.CreateDirectory(dir);
-                            Directory.SetCurrentDirectory(dir);
-                            cfg["name"] = dir;
-                            cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
-                        }
-
-                        ShellExec.Run("dotnet", "new webapi --no-https");
-                    }
-
-                    // create KubeApps files
-                    if (!Directory.Exists("kubeapps"))
-                    {
-                        Directory.CreateDirectory("kubeapps");
-                    }
-
-                    string ago;
-
-                    if (!File.Exists(Dirs.ConfigFile))
-                    {
-                        ago = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetConfig))
-                            .Replace("{{gitops.name}}", cfg["name"].ToString())
-                            .Replace("{{gitops.namespace}}", cfg["namespace"].ToString());
-                        File.WriteAllText(Dirs.ConfigFile, ago);
-                    }
-
-                    ago = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetTemplate));
-
-                    if (File.Exists(Dirs.TemplateFile))
-                    {
-                        ago = File.ReadAllText(Dirs.TemplateFile);
-                    }
-
-                    ago = ago.Replace("{{gitops.name}}", cfg["name"].ToString())
-                        .Replace("{{gitops.namespace}}", cfg["namespace"].ToString())
-                        .Replace("{{gitops.version}}", cfg["version"].ToString())
-                        .Replace("{{gitops.deploy}}", cfg["deploy"].ToString())
-                        .Replace("{{gitops.imageName}}", cfg["imageName"].ToString())
-                        .Replace("{{gitops.imageTag}}", cfg["imageTag"].ToString())
-                        .Replace("{{gitops.port}}", cfg["port"].ToString())
-                        .Replace("{{gitops.nodePort}}", cfg["nodePort"].ToString());
-                    File.WriteAllText($"kubeapps/{cfg["name"]}.yaml", ago);
-
-                    if (!File.Exists("Dockerfile"))
-                    {
-                        ago = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, "Dockerfile"))
-                            .Replace("{{gitops.port}}", cfg["port"].ToString())
-                            .Replace("{{gitops.name}}", cfg["name"].ToString());
-                        File.WriteAllText("Dockerfile", ago);
-                    }
-
-                    break;
+                    return DoInit();
 
                 case "check":
-                    if (cfg.ContainsKey("nodePort") && cfg.ContainsKey("probePath"))
+                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("probePath"))
                     {
-                        DoCheck(cfg["nodePort"].ToString(), cfg["probePath"].ToString());
+                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["probePath"].ToString());
                     }
 
                     break;
 
                 case "build":
                 case "deploy":
-                    string img = cfg["imageName"].ToString() + ":" + cfg["imageTag"].ToString();
+                    string img = KapConfig["imageName"].ToString() + ":" + KapConfig["imageTag"].ToString();
 
                     if (ShellExec.Run("docker", $"build . -t {img}"))
                     {
@@ -131,7 +73,7 @@ namespace Kube.Apps
                         {
                             if (cmd == "deploy" && Directory.Exists(Dirs.GitOpsDir))
                             {
-                                File.Copy($"kubeapps/{cfg["name"]}.yaml", Path.Combine(Dirs.GitOpsDir, $"{cfg["name"]}.yaml"), true);
+                                File.Copy($"kubeapps/{KapConfig["name"]}.yaml", Path.Combine(Dirs.GitOpsDir, $"{KapConfig["name"]}.yaml"), true);
                                 DoDeploy();
 
                                 return 0;
@@ -148,7 +90,92 @@ namespace Kube.Apps
             return 0;
         }
 
-        // handle ago add commands
+        private static int DoInit()
+        {
+            // create KubeApps files
+            if (!Directory.Exists("kubeapps"))
+            {
+                Directory.CreateDirectory("kubeapps");
+            }
+
+            string templ;
+
+            if (!File.Exists(Dirs.ConfigFile))
+            {
+                templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetConfig))
+                    .Replace("{{gitops.name}}", KapConfig["name"].ToString())
+                    .Replace("{{gitops.namespace}}", KapConfig["namespace"].ToString())
+                    .Replace("{{gitops.imageName}}", KapConfig["imageName"].ToString())
+                    .Replace("{{gitops.imageTag}}", KapConfig["imageTag"].ToString())
+                    .Replace("{{gitops.port}}", KapConfig["port"].ToString())
+                    .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString());
+                File.WriteAllText(Dirs.ConfigFile, templ);
+            }
+
+            templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetTemplate));
+
+            if (File.Exists(Dirs.TemplateFile))
+            {
+                templ = File.ReadAllText(Dirs.TemplateFile);
+            }
+
+            templ = templ.Replace("{{gitops.name}}", KapConfig["name"].ToString())
+                .Replace("{{gitops.namespace}}", KapConfig["namespace"].ToString())
+                .Replace("{{gitops.version}}", KapConfig["version"].ToString())
+                .Replace("{{gitops.deploy}}", KapConfig["deploy"].ToString())
+                .Replace("{{gitops.imageName}}", KapConfig["imageName"].ToString())
+                .Replace("{{gitops.imageTag}}", KapConfig["imageTag"].ToString())
+                .Replace("{{gitops.port}}", KapConfig["port"].ToString())
+                .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString());
+            File.WriteAllText($"kubeapps/{KapConfig["name"]}.yaml", templ);
+
+            if (!File.Exists("Dockerfile"))
+            {
+                templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, "Dockerfile"))
+                    .Replace("{{gitops.port}}", KapConfig["port"].ToString())
+                    .Replace("{{gitops.name}}", KapConfig["name"].ToString());
+                File.WriteAllText("Dockerfile", templ);
+            }
+
+            return 0;
+        }
+
+        // handle new app commands
+        private static int DoNew(ParseResult parse)
+        {
+            string cmd = parse.CommandResult.Command.Name;
+
+            switch (cmd)
+            {
+                case "dotnet":
+                    if (parse.UnmatchedTokens.Count > 0)
+                    {
+                        string dir = parse.UnmatchedTokens[0].Trim();
+                        Directory.CreateDirectory(dir);
+                        Directory.SetCurrentDirectory(dir);
+                        KapConfig["name"] = dir;
+                        KapConfig["imageName"] = $"k3d-registry.localhost:5000/{KapConfig["name"]}";
+
+                        if (parse.UnmatchedTokens.Count > 2 &&
+                            parse.UnmatchedTokens[1] == "--np" &&
+                            int.TryParse(parse.UnmatchedTokens[2], out int np))
+                        {
+                            KapConfig["nodePort"] = np.ToString();
+                        }
+                    }
+
+                    ShellExec.Run("dotnet", "new webapi --no-https");
+
+                    return DoInit();
+
+                default:
+                    break;
+            }
+
+            return 0;
+        }
+
+        // handle add commands
         private static int DoAdd(string cmd)
         {
             if (Directory.Exists(Dirs.GitOpsBase))
@@ -187,7 +214,7 @@ namespace Kube.Apps
             return 1;
         }
 
-        // handle ago deploy commands
+        // handle deploy commands
         private static int DoDeploy()
         {
             if (Directory.Exists(Dirs.GitOpsDir))
@@ -210,7 +237,7 @@ namespace Kube.Apps
             return 1;
         }
 
-        // handle ago add commands
+        // handle remove commands
         private static int DoRemove(string cmd)
         {
             if (Directory.Exists(Dirs.GitOpsBootstrapDir))

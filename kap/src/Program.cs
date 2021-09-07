@@ -49,6 +49,8 @@ namespace Kube.Apps
                         return DoAdd(res.CommandResult.Command.Name);
                     case "deploy":
                         return DoDeploy();
+                    case "new":
+                        return DoNew(res);
                     case "remove":
                         return DoRemove(res.CommandResult.Command.Name);
                     default:
