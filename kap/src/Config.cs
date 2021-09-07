@@ -46,8 +46,6 @@ namespace Kube.Apps
                 else
                 {
                     cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
-                    cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
-                    cfg["imageTag"] = "local";
                 }
             }
 
@@ -58,7 +56,7 @@ namespace Kube.Apps
 
             if (!cfg.ContainsKey("imageName"))
             {
-                cfg["imageName"] = cfg["name"];
+                cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
             }
 
             if (!cfg.ContainsKey("imageTag"))
@@ -81,9 +79,9 @@ namespace Kube.Apps
                 cfg["nodePort"] = 30080;
             }
 
-            if (!cfg.ContainsKey("readyProbe"))
+            if (!cfg.ContainsKey("readinessProbe"))
             {
-                cfg["readyProbe"] = "/weatherforecast";
+                cfg["readinessProbe"] = "/weatherforecast";
             }
 
             if (!cfg.ContainsKey("livenessProbe"))

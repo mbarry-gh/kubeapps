@@ -57,9 +57,9 @@ namespace Kube.Apps
                     return DoInit();
 
                 case "check":
-                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readyProbe"))
+                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readinessProbe"))
                     {
-                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readyProbe"].ToString());
+                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readinessProbe"].ToString());
                     }
 
                     break;
@@ -111,7 +111,7 @@ namespace Kube.Apps
                     .Replace("{{gitops.port}}", KapConfig["port"].ToString())
                     .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString())
                     .Replace("{{gitops.livenessProbe}}", KapConfig["livenessProbe"].ToString())
-                    .Replace("{{gitops.readyProbe}}", KapConfig["readyProbe"].ToString());
+                    .Replace("{{gitops.readinessProbe}}", KapConfig["readinessProbe"].ToString());
 
                 File.WriteAllText(Dirs.ConfigFile, templ);
             }
@@ -132,7 +132,7 @@ namespace Kube.Apps
                 .Replace("{{gitops.port}}", KapConfig["port"].ToString())
                 .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString())
                 .Replace("{{gitops.livenessProbe}}", KapConfig["livenessProbe"].ToString())
-                .Replace("{{gitops.readyProbe}}", KapConfig["readyProbe"].ToString());
+                .Replace("{{gitops.readinessProbe}}", KapConfig["readinessProbe"].ToString());
 
             File.WriteAllText($"kubeapps/{KapConfig["namespace"]}-{KapConfig["name"]}.yaml", templ);
 
@@ -162,7 +162,6 @@ namespace Kube.Apps
                         Directory.CreateDirectory(dir);
                         Directory.SetCurrentDirectory(dir);
                         KapConfig["name"] = dir;
-                        KapConfig["imageName"] = KapConfig["name"];
 
                         if (parse.UnmatchedTokens.Count > 2 &&
                             parse.UnmatchedTokens[1] == "--np" &&
