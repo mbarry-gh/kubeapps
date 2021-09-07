@@ -58,7 +58,7 @@ namespace Kube.Apps
 
             if (!cfg.ContainsKey("imageName"))
             {
-                cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
+                cfg["imageName"] = cfg["name"];
             }
 
             if (!cfg.ContainsKey("imageTag"))
@@ -79,6 +79,16 @@ namespace Kube.Apps
             if (!cfg.ContainsKey("nodePort"))
             {
                 cfg["nodePort"] = 30080;
+            }
+
+            if (!cfg.ContainsKey("readyProbe"))
+            {
+                cfg["readyProbe"] = "/weatherforecast";
+            }
+
+            if (!cfg.ContainsKey("livenessProbe"))
+            {
+                cfg["livenessProbe"] = "/weatherforecast";
             }
 
             if (!cfg.ContainsKey("version"))

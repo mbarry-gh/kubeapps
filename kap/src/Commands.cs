@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace Kube.Apps
 {
@@ -42,7 +43,7 @@ namespace Kube.Apps
 
                 case "remove":
                     // delete the file from GitOps
-                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["name"]}.yaml");
+                    string file = Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml");
 
                     if (File.Exists(file))
                     {
@@ -56,9 +57,9 @@ namespace Kube.Apps
                     return DoInit();
 
                 case "check":
-                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("probePath"))
+                    if (KapConfig.ContainsKey("nodePort") && KapConfig.ContainsKey("readyProbe"))
                     {
-                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["probePath"].ToString());
+                        DoCheck(KapConfig["nodePort"].ToString(), KapConfig["readyProbe"].ToString());
                     }
 
                     break;
@@ -72,8 +73,8 @@ namespace Kube.Apps
                         if (ShellExec.Run("docker", $"push {img}"))
                         {
                             if (cmd == "deploy" && Directory.Exists(Dirs.GitOpsDir))
-                            {
-                                File.Copy($"kubeapps/{KapConfig["name"]}.yaml", Path.Combine(Dirs.GitOpsDir, $"{KapConfig["name"]}.yaml"), true);
+{
+                                File.Copy($"kubeapps/{KapConfig["namespace"]}-{KapConfig["name"]}.yaml", Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
                                 DoDeploy();
 
                                 return 0;
@@ -108,7 +109,10 @@ namespace Kube.Apps
                     .Replace("{{gitops.imageName}}", KapConfig["imageName"].ToString())
                     .Replace("{{gitops.imageTag}}", KapConfig["imageTag"].ToString())
                     .Replace("{{gitops.port}}", KapConfig["port"].ToString())
-                    .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString());
+                    .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString())
+                    .Replace("{{gitops.livenessProbe}}", KapConfig["livenessProbe"].ToString())
+                    .Replace("{{gitops.readyProbe}}", KapConfig["readyProbe"].ToString());
+
                 File.WriteAllText(Dirs.ConfigFile, templ);
             }
 
@@ -126,14 +130,18 @@ namespace Kube.Apps
                 .Replace("{{gitops.imageName}}", KapConfig["imageName"].ToString())
                 .Replace("{{gitops.imageTag}}", KapConfig["imageTag"].ToString())
                 .Replace("{{gitops.port}}", KapConfig["port"].ToString())
-                .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString());
-            File.WriteAllText($"kubeapps/{KapConfig["name"]}.yaml", templ);
+                .Replace("{{gitops.nodePort}}", KapConfig["nodePort"].ToString())
+                .Replace("{{gitops.livenessProbe}}", KapConfig["livenessProbe"].ToString())
+                .Replace("{{gitops.readyProbe}}", KapConfig["readyProbe"].ToString());
+
+            File.WriteAllText($"kubeapps/{KapConfig["namespace"]}-{KapConfig["name"]}.yaml", templ);
 
             if (!File.Exists("Dockerfile"))
             {
                 templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, "Dockerfile"))
                     .Replace("{{gitops.port}}", KapConfig["port"].ToString())
                     .Replace("{{gitops.name}}", KapConfig["name"].ToString());
+
                 File.WriteAllText("Dockerfile", templ);
             }
 
@@ -154,7 +162,7 @@ namespace Kube.Apps
                         Directory.CreateDirectory(dir);
                         Directory.SetCurrentDirectory(dir);
                         KapConfig["name"] = dir;
-                        KapConfig["imageName"] = $"k3d-registry.localhost:5000/{KapConfig["name"]}";
+                        KapConfig["imageName"] = KapConfig["name"];
 
                         if (parse.UnmatchedTokens.Count > 2 &&
                             parse.UnmatchedTokens[1] == "--np" &&
