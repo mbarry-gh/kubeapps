@@ -2,11 +2,7 @@
 
 echo "post-create start" >> ~/status
 
-# pull the rancher images
-docker pull rancher/k3s:v1.21.3-k3s1
-docker pull rancher/k3d-proxy:4.4.8
-
-# this runs in background after UI is available
+# this runs after UI is available
 
 # (optional) upgrade packages
 #sudo apt-get update

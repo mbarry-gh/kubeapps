@@ -4,7 +4,7 @@ FROM ghcr.io/cse-labs/k3d:latest
 
 # some images require specific values
 ARG USERNAME=vscode
-ENV PATH $PATH:/home/${USERNAME}/.dapr/bin:/usr/local/go/bin
+ENV PATH $PATH:/usr/local/go/bin
 
 # [Optional] Uncomment this section to install additional OS packages.
 # alternatively, you can add commands to on-create.sh and/or post-create.sh
