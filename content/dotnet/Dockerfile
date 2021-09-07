@@ -21,13 +21,13 @@ WORKDIR /app
 
 ### create a user
 ### dotnet needs a home directory
-RUN addgroup -S ago && \
-    adduser -S ago -G ago && \
-    mkdir -p /home/ago && \
-    chown -R ago:ago /home/ago
+RUN addgroup -S kap && \
+    adduser -S kap -G kap && \
+    mkdir -p /home/kap && \
+    chown -R kap:kap /home/kap
 
-### run as ago user
-USER ago
+### run as kap user
+USER kap
 ENV ASPNETCORE_URLS=http://+:{{gitops.port}}
 
 ### copy the app
