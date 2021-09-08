@@ -21,19 +21,9 @@ namespace Kube.Apps
             DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        public string Init { get; set; }
-        public string Add { get; set; }
-        public string Deploy { get; set; }
-        public string AgoUser { get; set; }
-        public string AgoPat { get; set; }
-        public string AgoRepo { get; set; }
-        public string ContainerVersion { get; set; }
-        public bool LocalDev { get; set; }
-        public string TemplateDir { get; set; }
-        public string OutputDir { get; set; }
         public bool DryRun { get; set; }
 
-        public static Dictionary<string, object> ReadAgoConfig()
+        public static Dictionary<string, object> ReadKapConfig()
         {
             DateTime now = DateTime.UtcNow;
 
@@ -56,8 +46,6 @@ namespace Kube.Apps
                 else
                 {
                     cfg["name"] = Path.GetFileName(Directory.GetCurrentDirectory());
-                    cfg["imageName"] = $"k3d-registry.localhost:5000/{cfg["name"]}";
-                    cfg["imageTag"] = "local";
                 }
             }
 
@@ -89,6 +77,16 @@ namespace Kube.Apps
             if (!cfg.ContainsKey("nodePort"))
             {
                 cfg["nodePort"] = 30080;
+            }
+
+            if (!cfg.ContainsKey("readinessProbe"))
+            {
+                cfg["readinessProbe"] = "/weatherforecast";
+            }
+
+            if (!cfg.ContainsKey("livenessProbe"))
+            {
+                cfg["livenessProbe"] = "/weatherforecast";
             }
 
             if (!cfg.ContainsKey("version"))

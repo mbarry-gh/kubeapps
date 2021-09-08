@@ -1,10 +1,11 @@
 {
-    "name": "{{gitops.name}}",
-    "namespace": "{{gitops.namespace}}",
-    "imageName": "k3d-registry.localhost:5000/{{gitops.name}}",
-    "imageTag": "local",
-    "port": 8080,
-    "nodePort": 30080,
-    "probePath": "/weatherforecast",
-    "targets": [ "local" ] 
+  "name": "{{gitops.name}}",
+  "namespace": "{{gitops.namespace}}",
+  "imageName": "{{gitops.imageName}}",
+  "imageTag": "{{gitops.imageTag}}",
+  "port": "{{gitops.port}}",
+  "nodePort": "{{gitops.nodePort}}",
+  "readinessProbe": "{{gitops.readinessProbe}}",
+  "livenessProbe": "{{gitops.livenessProbe}}",
+  "targets": [ "local" ]
 }

@@ -23,8 +23,6 @@
 	"forwardPorts": [
 		3000,
 		30000,
-		30080,
-		30088,
 		32000
 	],
 
@@ -32,16 +30,13 @@
 	"portsAttributes": {
 		"3000": { "label": "Gogs" },
 		"30000": { "label": "Prometheus" },
-		"30080": { "label": "ngsa-app" },
-		"30088": { "label": "WebV" },
-		"32000": { "label": "Grafana" },
+		"32000": { "label": "Grafana" }
 	},
 
 	// Install extensions
 	"extensions": [
 		"ms-dotnettools.csharp",
 		"ms-azuretools.vscode-docker",
-		"ms-azuretools.vscode-dapr",
 		"ms-kubernetes-tools.vscode-kubernetes-tools",
 		"davidanson.vscode-markdownlint",
 		"gruntfuggly.todo-tree",

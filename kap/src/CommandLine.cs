@@ -18,9 +18,6 @@ namespace Kube.Apps
         private static readonly List<string> EnvVarErrors = new ();
         private static readonly DateTime Now = DateTime.UtcNow;
 
-        // private static Dictionary<string, object> appConfig = null;
-        // private static List<string> targets = null;
-
         public static Config Config { get; set; } = null;
 
         /// <summary>
@@ -44,50 +41,46 @@ namespace Kube.Apps
             RootCommand root = new ()
             {
                 Name = "KubeApps",
-                Description = "Generate GitOps files for Flux",
+                Description = "Automate common Kubernetes GitOps tasks",
+
+                // todo - change this once the CLI API is stable - makes testing MUCH easier
                 TreatUnmatchedTokensAsErrors = false,
             };
 
-            Command add = new ("add", "Add bootstrap components");
-            Command remove = new ("remove", "Remove bootstrap components");
-            Command deploy = new ("deploy", "Deploy any GitOps changes");
-            Command app = new ("app", "Application sub-commands");
+            Command add = new ("add", "Add apps and components");
+            Command remove = new ("remove", "Remove apps and components");
 
-            add.AddCommand(new ("all", "Add all bootstrap components"));
-            remove.AddCommand(new ("all", "Remove all bootstrap components"));
+            //add.AddCommand(new ("all", "Add all bootstrap components"));
+            //remove.AddCommand(new ("all", "Remove all bootstrap components"));
 
-            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+            //IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
 
-            if (files.Any())
-            {
-                foreach (string f in files)
-                {
-                    add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-                    remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-                }
-            }
+            //if (files.Any())
+            //{
+            //    foreach (string f in files)
+            //    {
+            //        add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+            //        remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+            //    }
+            //}
 
-            app.AddCommand(new ("build", "Build the app"));
-            app.AddCommand(new ("check", "Check the app endpoint (if configured)"));
-            app.AddCommand(new ("deploy", "Deploy the app"));
-            app.AddCommand(new ("init", "Initialize KubeApps"));
-            app.AddCommand(new ("logs", "Get the Kubernetes app logs"));
-            app.AddCommand(new ("remove", "Remove the app via GitOps"));
-
-            Command appNew = new ("new", "Create a new application");
+            Command appNew = new ("new", "Create a new app");
             appNew.AddCommand(new ("dotnet", "Create a new Dotnet WebAPI app"));
-            app.AddCommand(appNew);
 
             root.AddCommand(add);
-            root.AddCommand(app);
-            root.AddCommand(deploy);
+            root.AddCommand(new ("build", "Build the app"));
+            root.AddCommand(new ("check", "Check the app endpoint (if configured)"));
+            root.AddCommand(new ("deploy", "Deploy any GitOps changes"));
+            root.AddCommand(new ("init", "Initialize KubeApps"));
+            root.AddCommand(new ("logs", "Get the Kubernetes app logs"));
+            root.AddCommand(appNew);
             root.AddCommand(remove);
 
             // add the options
-            //root.AddOption(new Option<bool>(new string[] { "--dry-run", "-d" }, "Validates and displays configuration"));
+            root.AddOption(new Option<bool>(new string[] { "--dry-run", "-d" }, "Validates and displays configuration"));
 
-            //// validate dependencies
-            //root.AddValidator(ValidateDependencies);
+            // validate dependencies
+            root.AddValidator(ValidateDependencies);
 
             return root;
         }
@@ -104,43 +97,9 @@ namespace Kube.Apps
 
             try
             {
-                // get the values to validate
-                string user = result.Children.FirstOrDefault(c => c.Symbol.Name == "ago-user") is OptionResult userRes ? userRes.GetValueOrDefault<string>() : string.Empty;
-                string pat = result.Children.FirstOrDefault(c => c.Symbol.Name == "ago-pat") is OptionResult patRes ? patRes.GetValueOrDefault<string>() : string.Empty;
-                string repo = result.Children.FirstOrDefault(c => c.Symbol.Name == "ago-repo") is OptionResult repoRes ? repoRes.GetValueOrDefault<string>() : string.Empty;
-                string template = result.Children.FirstOrDefault(c => c.Symbol.Name == "template-dir") is OptionResult templateRes ? templateRes.GetValueOrDefault<string>() : string.Empty;
-                string output = result.Children.FirstOrDefault(c => c.Symbol.Name == "output-dir") is OptionResult outputRes ? outputRes.GetValueOrDefault<string>() : string.Empty;
-                bool localdev = result.Children.FirstOrDefault(c => c.Symbol.Name == "local-dev") is OptionResult localDevRes && localDevRes.GetValueOrDefault<bool>();
-
-                // validate data-service
-                if (localdev)
+                if (result != null)
                 {
-                    if (string.IsNullOrWhiteSpace(template))
-                    {
-                        msg += "--template-dir cannot be empty\n";
-                    }
-
-                    if (string.IsNullOrWhiteSpace(output))
-                    {
-                        msg += "--output-dir cannot be empty\n";
-                    }
-                }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(user))
-                    {
-                        msg += "--ago-user cannot be empty\n";
-                    }
-
-                    if (string.IsNullOrWhiteSpace(pat))
-                    {
-                        msg += "--ago-pat cannot be empty\n";
-                    }
-
-                    if (string.IsNullOrWhiteSpace(repo))
-                    {
-                        msg += "--ago-repo cannot be empty\n";
-                    }
+                    // todo - add validation?
                 }
             }
             catch
@@ -272,23 +231,6 @@ namespace Kube.Apps
         private static int DoDryRun()
         {
             Console.WriteLine($"Version              {VersionExtension.Version}");
-
-            if (!string.IsNullOrWhiteSpace(Config.ContainerVersion))
-            {
-                Console.WriteLine($"Container Version    {Config.ContainerVersion}");
-            }
-
-            if (Config.LocalDev)
-            {
-                Console.WriteLine($"Template Directory   {Config.TemplateDir}");
-                Console.WriteLine($"Output Directory     {Config.OutputDir}");
-            }
-            else
-            {
-                Console.WriteLine($"GitHub User          {Config.AgoUser}");
-                Console.WriteLine($"GitHub PAT           Length: {(string.IsNullOrWhiteSpace(Config.AgoPat) ? 0 : Config.AgoPat.Length)}");
-                Console.WriteLine($"GitHub Repo          {Config.AgoRepo}");
-            }
 
             // always return 0 (success)
             return 0;
