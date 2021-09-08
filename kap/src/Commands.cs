@@ -195,6 +195,12 @@ namespace Kube.Apps
         {
             if (Directory.Exists(Dirs.GitOpsDir))
             {
+                // build the app if possible
+                if (Dirs.IsAppDir && File.Exists("./Dockerfile"))
+                {
+                    DoBuild();
+                }
+
                 Directory.SetCurrentDirectory(Dirs.GitOpsDir);
                 ShellExec.Run("git", "pull");
 
