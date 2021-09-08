@@ -148,6 +148,12 @@ namespace Kube.Apps
                             DoInit();
                         }
 
+                        // build the app if possible
+                        if (File.Exists("./Dockerfile"))
+                        {
+                            DoBuild();
+                        }
+
                         if (File.Exists(file))
                         {
                             File.Copy(file, Path.Combine(Dirs.GitOpsDir, $"{KapConfig["namespace"]}-{KapConfig["name"]}.yaml"), true);
@@ -195,12 +201,6 @@ namespace Kube.Apps
         {
             if (Directory.Exists(Dirs.GitOpsDir))
             {
-                // build the app if possible
-                if (Dirs.IsAppDir && File.Exists("./Dockerfile"))
-                {
-                    DoBuild();
-                }
-
                 Directory.SetCurrentDirectory(Dirs.GitOpsDir);
                 ShellExec.Run("git", "pull");
 
