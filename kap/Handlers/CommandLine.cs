@@ -11,9 +11,9 @@ using System.Linq;
 namespace Kube.Apps
 {
     /// <summary>
-    /// Main application class
+    /// Implement System.CommandLine
     /// </summary>
-    public sealed partial class App
+    public sealed partial class Commands
     {
         private static readonly List<string> EnvVarErrors = new ();
         private static readonly DateTime Now = DateTime.UtcNow;
@@ -47,34 +47,45 @@ namespace Kube.Apps
                 TreatUnmatchedTokensAsErrors = false,
             };
 
-            Command add = new ("add", "Add apps and components");
-            Command remove = new ("remove", "Remove apps and components");
+            Command add = new ("add", "Add bootstrap service");
+            Command remove = new ("remove", "Remove bootstrap service");
+            remove.AddAlias("rm");
 
-            //add.AddCommand(new ("all", "Add all bootstrap components"));
-            //remove.AddCommand(new ("all", "Remove all bootstrap components"));
+            Command bs = new (Commands.Bootstrap, "Manage bootstrap services");
+            bs.AddAlias("bs");
+            bs.AddCommand(add);
+            bs.AddCommand(remove);
 
-            //IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+            add.AddCommand(new (Commands.All, "Add all bootstrap service"));
+            remove.AddCommand(new (Commands.All, "Remove all bootstrap service"));
 
-            //if (files.Any())
-            //{
-            //    foreach (string f in files)
-            //    {
-            //        add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-            //        remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-            //    }
-            //}
+            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
 
-            Command appNew = new ("new", "Create a new app");
-            appNew.AddCommand(new ("dotnet", "Create a new Dotnet WebAPI app"));
+            foreach (string f in files)
+            {
+                add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+                remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+            }
 
-            root.AddCommand(add);
-            root.AddCommand(new ("build", "Build the app"));
-            root.AddCommand(new ("check", "Check the app endpoint (if configured)"));
-            root.AddCommand(new ("deploy", "Deploy any GitOps changes"));
-            root.AddCommand(new ("init", "Initialize KubeApps"));
-            root.AddCommand(new ("logs", "Get the Kubernetes app logs"));
+            Command rm = new ("remove", "Remove app from GitOps");
+            rm.AddAlias("rm");
+
+            Command appNew = new (Commands.New, "Create a new app");
+            appNew.AddCommand(new (Commands.DotNet, "Create a new Dotnet WebAPI app"));
+
+            Command ls = new ("list", "List the apps running in Kubernetes");
+            ls.AddAlias("ls");
+
+            root.AddCommand(new ("add", "Add the app to GitOps"));
+            root.AddCommand(bs);
+            root.AddCommand(ls);
+            root.AddCommand(new (Commands.Build, "Build the app"));
+            root.AddCommand(new (Commands.Check, "Check the app endpoint (if configured)"));
+            root.AddCommand(new (Commands.Init, "Initialize KubeApps"));
+            root.AddCommand(new (Commands.Logs, "Get the Kubernetes app logs"));
             root.AddCommand(appNew);
-            root.AddCommand(remove);
+            root.AddCommand(rm);
+            root.AddCommand(new (Commands.Sync, "Sync any GitOps changes"));
 
             // add the options
             root.AddOption(new Option<bool>(new string[] { "--dry-run", "-d" }, "Validates and displays configuration"));

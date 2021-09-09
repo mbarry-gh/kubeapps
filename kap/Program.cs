@@ -29,88 +29,21 @@ namespace Kube.Apps
                 args = new string[] { "--help" };
             }
 
+            if (args[0] == "help")
+            {
+                args[0] = "--help";
+            }
+
+            if (args[0] == "version")
+            {
+                args[0] = "--version";
+            }
+
             DisplayAsciiArt(args);
 
             InitKap();
 
-            // build and parse the command line args
-            RootCommand root = BuildRootCommand();
-            ParseResult res = root.Parse(args);
-
-            // short circuit errors, help and version
-            if (res.Errors.Count > 0 ||
-                res.RootCommandResult.Children.Count == 0 ||
-                args.Contains("-h") ||
-                args.Contains("--help") ||
-                args.Contains("--version"))
-            {
-                // run the app
-                root.Handler = CommandHandler.Create<Config>(RunApp);
-                return root.Invoke(args);
-            }
-
-            // verify GitOps repo exists
-            if (!Directory.Exists(Dirs.GitOpsBase))
-            {
-                Console.Error.WriteLine($"{Dirs.GitOpsBase} not found\n\n  Please clone a git repo to {Dirs.GitOpsBase} and try again");
-                return 1;
-            }
-
-            // create directories if needed
-            if (!Directory.Exists(Dirs.GitOpsDir))
-            {
-                Directory.CreateDirectory(Dirs.GitOpsDir);
-            }
-
-            if (!Directory.Exists(Dirs.GitOpsBootstrapDir))
-            {
-                Directory.CreateDirectory(Dirs.GitOpsBootstrapDir);
-            }
-
-            // fail if directories don't exist
-            if (!Directory.Exists(Dirs.GitOpsDir) || !Directory.Exists(Dirs.GitOpsBootstrapDir))
-            {
-                Console.WriteLine("unable to create GitOps directory");
-                return 1;
-            }
-
-            // handle the commands
-            if (res.RootCommandResult.Children.Count > 0)
-            {
-                switch (res.RootCommandResult.Children[0].Symbol.Name)
-                {
-                    case "add":
-                        return DoAdd(res);
-
-                    case "build":
-                        return DoBuild();
-
-                    case "check":
-                        return DoCheck();
-
-                    case "deploy":
-                        return DoDeploy();
-
-                    case "init":
-                        return DoInit();
-
-                    case "logs":
-                        return DoLogs();
-
-                    case "new":
-                        return DoNew(res);
-
-                    case "remove":
-                        return DoRemove(res);
-
-                    default:
-                        break;
-                }
-            }
-
-            // this should never happen
-            Console.WriteLine("command line handler not found\n\n  Please report this as a bug");
-            return 1;
+            return new Commands().Run(args);
         }
 
         private static void InitKap()
@@ -124,8 +57,8 @@ namespace Kube.Apps
             {
                 Directory.CreateDirectory(Dirs.KapHome);
 
-                DirectoryCopy(Path.Combine(Dirs.KapBase, "bootstrap"), Dirs.KapBootstrapDir, true);
-                DirectoryCopy(Path.Combine(Dirs.KapBase, "dotnet"), Dirs.KapDotnetDir, true);
+                DirectoryCopy(Path.Combine(Dirs.KapBase, Commands.Bootstrap), Dirs.KapBootstrapDir, true);
+                DirectoryCopy(Path.Combine(Dirs.KapBase, Commands.DotNet), Dirs.KapDotnetDir, true);
             }
         }
 
@@ -137,7 +70,7 @@ namespace Kube.Apps
 
             if (!dir.Exists)
             {
-                throw new DirectoryNotFoundException($"Source directory does not exist or could not be found: {sourceDirName}");
+                throw new DirectoryNotFoundException($"{Messages.SourceDirNotFound}: {sourceDirName}");
             }
 
             DirectoryInfo[] dirs = dir.GetDirectories();
@@ -164,42 +97,15 @@ namespace Kube.Apps
             }
         }
 
-        private static bool DoCheck(string nodePort, string path)
-        {
-            string command = $"localhost:{nodePort}/{path}".Replace("//", "/");
-
-            Console.WriteLine(command);
-
-            try
-            {
-                using System.Diagnostics.Process git = new ();
-                git.StartInfo.FileName = "http";
-                git.StartInfo.Arguments = command;
-                git.StartInfo.UseShellExecute = false;
-                git.StartInfo.RedirectStandardOutput = false;
-                git.Start();
-                git.WaitForExit();
-
-                return git.ExitCode == 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ExecGit exception: git {command}\n{ex.Message}");
-                return false;
-            }
-        }
-
         // display Ascii Art
         private static void DisplayAsciiArt(string[] args)
         {
             if (args != null)
             {
-                ReadOnlySpan<string> cmd = new (args);
-
-                if (!cmd.Contains("--version") &&
-                    (cmd.Contains("-h") ||
-                    cmd.Contains("--help") ||
-                    cmd.Contains("--dry-run")))
+                if (!args.Contains("--version") &&
+                    (args.Contains("-h") ||
+                    args.Contains("--help") ||
+                    args.Contains("--dry-run")))
                 {
                     string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                     string file = $"{path}/files/ascii-art.txt";

@@ -10,6 +10,12 @@ namespace Kube.Apps
     /// </summary>
     public sealed class ShellExec
     {
+        public const string Kubectl = "kubectl";
+        public const string Git = "git";
+        public const string Docker = "docker";
+        public const string DotNet = "dotnet";
+        public const string Flux = "fluxctl";
+
         public static bool Run(string cmd, string cmdParams = "")
         {
             if (string.IsNullOrWhiteSpace(cmd))

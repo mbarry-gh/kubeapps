@@ -8,6 +8,7 @@ namespace Kube.Apps
     public class Dirs
     {
         public const string HomeSubDir = ".kubeapps";
+        public const string KubeAppDir = "kubeapps";
         public const string TemplateFile = "kubeapps/template.yaml";
         public const string ConfigFile = "kubeapps/config.json";
         public const string DotnetConfig = "config.json";
