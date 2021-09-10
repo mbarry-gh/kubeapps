@@ -55,45 +55,7 @@ namespace Kube.Apps
 
             if (!Directory.Exists(Dirs.KapHome))
             {
-                Directory.CreateDirectory(Dirs.KapHome);
-
-                DirectoryCopy(Path.Combine(Dirs.KapBase, Commands.Bootstrap), Dirs.KapBootstrapDir, true);
-                DirectoryCopy(Path.Combine(Dirs.KapBase, Commands.DotNet), Dirs.KapDotnetDir, true);
-            }
-        }
-
-        // copy a directory / tree
-        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
-        {
-            // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new (sourceDirName);
-
-            if (!dir.Exists)
-            {
-                throw new DirectoryNotFoundException($"{Messages.SourceDirNotFound}: {sourceDirName}");
-            }
-
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-            // If the destination directory doesn't exist, create it
-            Directory.CreateDirectory(destDirName);
-
-            // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                string tempPath = Path.Combine(destDirName, file.Name);
-                file.CopyTo(tempPath, true);
-            }
-
-            // If copying subdirectories, copy them and their contents to new location.
-            if (copySubDirs)
-            {
-                foreach (DirectoryInfo subdir in dirs)
-                {
-                    string tempPath = Path.Combine(destDirName, subdir.Name);
-                    DirectoryCopy(subdir.FullName, tempPath, copySubDirs);
-                }
+                ShellExec.Run(ShellExec.Git, $"clone https://github.com/bartr/kap-config {Dirs.KapHome}");
             }
         }
 

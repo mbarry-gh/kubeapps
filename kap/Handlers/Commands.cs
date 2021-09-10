@@ -29,6 +29,10 @@ namespace Kube.Apps
         public const string New = "new";
         public const string DotNet = "dotnet";
         public const string Remove = "remove";
+        public const string Config = "config";
+        public const string Reset = "reset";
+        public const string Update = "update";
+        public const string List = "list";
 
         // template field names
         public const string Name = "name";
@@ -48,7 +52,7 @@ namespace Kube.Apps
         public const string CsprojSearch = "*.csproj";
 
         // read / generate app config
-        public Dictionary<string, object> KapConfig { get; } = Config.ReadKapConfig();
+        public Dictionary<string, object> KapConfig { get; } = AppConfig.ReadKapConfig();
 
         // template replace value
         public static string GitOpsValue(string name)
@@ -73,7 +77,7 @@ namespace Kube.Apps
                 args.Contains("--version"))
             {
                 // run the app
-                root.Handler = CommandHandler.Create<Config>(RunApp);
+                root.Handler = CommandHandler.Create<AppConfig>(RunApp);
                 return root.Invoke(args);
             }
 
@@ -106,7 +110,7 @@ namespace Kube.Apps
             if (res.RootCommandResult.Children.Count > 0)
             {
                 switch (res.RootCommandResult.Children[0].Symbol.Name)
-{
+                {
                     case Commands.Add:
                         return DoAdd(string.Empty);
 
@@ -130,6 +134,9 @@ namespace Kube.Apps
 
                     case Check:
                         return DoCheck();
+
+                    case Config:
+                        return DoConfig(res.RootCommandResult.Children[0].Children[0].Symbol.Name);
 
                     case Sync:
                         return DoSync();
@@ -157,6 +164,24 @@ namespace Kube.Apps
             // this should never happen
             Console.WriteLine(Messages.HandlerNotFound);
             return 1;
+        }
+
+        // handle config
+        public int DoConfig(string cmd)
+        {
+            Directory.SetCurrentDirectory(Dirs.KapHome);
+
+            // reset and clean the git repo
+            if (cmd == Commands.Reset)
+            {
+                ShellExec.Run(ShellExec.Git, "clean -f");
+                ShellExec.Run(ShellExec.Git, "reset --hard");
+            }
+
+            // git pull the latest updates
+            ShellExec.Run(ShellExec.Git, "pull");
+
+            return 0;
         }
 
         // initialize KubeApps for the app
@@ -311,16 +336,21 @@ namespace Kube.Apps
                     {
                         if (cmd == "all")
                         {
-                            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+                            IEnumerable<string> dirs = Directory.EnumerateDirectories(Dirs.KapBootstrapDir);
 
-                            foreach (string f in files)
+                            foreach (string dir in dirs)
                             {
-                                File.Copy(f, Path.Combine(Dirs.GitOpsBootstrapDir, Path.GetFileName(f)), true);
+                                DirectoryCopy(dir, Path.Combine(Dirs.GitOpsBootstrapDir, Path.GetFileName(dir)), true);
                             }
                         }
                         else
                         {
-                            File.Copy(Path.Combine(Dirs.KapBootstrapDir, $"{cmd}.yaml"), Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"), true);
+                            string dir = Path.Combine(Dirs.KapBootstrapDir, $"{cmd}");
+
+                            if (Directory.Exists(dir))
+                            {
+                                DirectoryCopy(dir, Path.Combine(Dirs.GitOpsBootstrapDir, Path.GetFileName(dir)), true);
+                            }
                         }
                     }
                 }
@@ -431,20 +461,22 @@ namespace Kube.Apps
                 {
                     if (Directory.Exists(Dirs.GitOpsBootstrapDir))
                     {
-                        if (cmd == Commands.All)
+                        if (cmd == "all")
                         {
-                            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.GitOpsBootstrapDir, "*.*");
+                            IEnumerable<string> dirs = Directory.EnumerateDirectories(Dirs.GitOpsBootstrapDir);
 
-                            foreach (string f in files)
+                            foreach (string dir in dirs)
                             {
-                                File.Delete(f);
+                                Directory.Delete(dir, true);
                             }
                         }
                         else
                         {
-                            if (File.Exists(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml")))
+                            string dir = Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}");
+
+                            if (Directory.Exists(dir))
                             {
-                                File.Delete(Path.Combine(Dirs.GitOpsBootstrapDir, $"{cmd}.yaml"));
+                                Directory.Delete(dir, true);
                             }
                         }
                     }
@@ -477,6 +509,41 @@ namespace Kube.Apps
             {
                 Console.WriteLine($"ExecGit exception: git {command}\n{ex.Message}");
                 return false;
+            }
+        }
+
+        // copy a directory / tree
+        private void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+        {
+            // Get the subdirectories for the specified directory.
+            DirectoryInfo dir = new (sourceDirName);
+
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException($"{Messages.SourceDirNotFound}: {sourceDirName}");
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            // If the destination directory doesn't exist, create it
+            Directory.CreateDirectory(destDirName);
+
+            // Get the files in the directory and copy them to the new location.
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                string tempPath = Path.Combine(destDirName, file.Name);
+                file.CopyTo(tempPath, true);
+            }
+
+            // If copying subdirectories, copy them and their contents to new location.
+            if (copySubDirs)
+            {
+                foreach (DirectoryInfo subdir in dirs)
+                {
+                    string tempPath = Path.Combine(destDirName, subdir.Name);
+                    DirectoryCopy(subdir.FullName, tempPath, copySubDirs);
+                }
             }
         }
 

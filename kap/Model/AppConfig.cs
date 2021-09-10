@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Kube.Apps
 {
-    public sealed class Config
+    public sealed class AppConfig
     {
         private static readonly JsonSerializerOptions JsonOptions = new ()
         {
