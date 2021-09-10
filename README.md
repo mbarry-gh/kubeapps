@@ -50,10 +50,22 @@ Create your repo from this template and add your application code
 
 ## Update `deploy/flux.yaml`
 
-- Change the GitHub repo in `deploy/flux.yaml`
-- Change the branch if necessary
+- Change the GitHub repo [and branch] in `deploy/flux.yaml`
 
-- TODO - automate this
+```bash
+
+pushd /workspaces/gitops
+
+# save the GitHub repo info for flux
+export GITOPS_REPO=$(git remote get-url origin)
+export GITOPS_BRANCH=$(git branch --show-current)
+
+popd
+
+rm -f deploy/flux/flux.yaml
+cat deploy/flux/template.yaml | envsubst  > deploy/flux/flux.yaml
+
+```
 
 ## Build and Deploy a K3d Cluster
 
