@@ -4,19 +4,17 @@
 
 ## Overview
 
-This is a proof of concept of a CLI to make inner-loop Kubernetes development easier by automating common tasks.
+This is a proof of concept CLI to make inner-loop Kubernetes development easier by automating common tasks.
 
-For ideas, feature requests, and discussions, please use GitHub discussions so we can collaborate and follow up.
+For ideas and feature requests, please use GitHub Issues so we can collaborate and follow up.
 
-This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash but hasn't been fully tested. For the HoL, please use zsh to avoid any issues.
+This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash but hasn't been fully tested.
 
-You can run the `dev container` locally and you can also connect to the Codespace with a local version of VS Code.
-
-Please experiment and add any issues to the GitHub Discussion. We LOVE PRs!
+Please experiment and add any issues to GitHub Issues.
 
 ## Create your repo
 
-> You must have access to Codespaces as an individual or part of a GitHub Team or GitHub Enterprise Cloud
+> You must have access to Codespaces as an individual or part of a GitHub subscription
 >
 > If you are a member of this GitHub organization, you can skip this step and open with Codespaces
 
@@ -34,45 +32,144 @@ Create your repo from this template and add your application code
 
 ## GitOps repo
 
-- Create a GitOps repo and clone to /workspaces/gitops
+- Create an empty GitOps repo and clone to /workspaces/gitops
 
 - Create the gitops directory
+  - The `Flux` setup requires this directory
 
-  ```bash
+    ```bash
 
-  pushd /workspaces/gitops
-  
-  # create a placeholder file
-  mkdir -p gitops
-  touch gitops/.placeholder
+    # create a placeholder file
+    mkdir -p /workspaces/gitops/gitops
+    touch /workspaces/gitops/gitops/.placeholder
 
-  # push changes to GitHub
-  git add .
-  git commit -am "Initial commit"
-  git push
+    # push changes to GitHub
+    kap sync
 
-  popd
-
-  ```
+    ```
 
 ## Update `deploy/flux.yaml`
 
-- TODO - automate this
 - Change the GitHub repo in `deploy/flux.yaml`
 - Change the branch if necessary
+
+- TODO - automate this
 
 ## Build and Deploy a K3d Cluster
 
   ```bash
 
-  # build the cluster
   make create
+
+  # check the pods
+  kap ls
 
   ```
 
 ## KubeApps (kap) Walkthrough
 
-- todo - write kap docs
+Create and deploy a new app with KubeApps
+
+  ```bash
+
+  # create the app, Dockerfile and k8s manifest
+  cd ~
+  kap new dotnet weather
+
+  # push the app to the cluster via flux
+  cd weather
+  kap add
+  kap sync
+
+  # check the pods
+  kap ls
+
+  # check the endpoint
+  kap check
+
+  # check the logs
+  kap logs
+
+  # remove the app
+  kap remove
+  kap sync
+
+  # check the pods
+  kap ls
+
+  ```
+
+Deploy NGSA-App and Webvalidate
+
+  ```bash
+
+  # add the apps
+  cd /workspaces/ngsa
+  kap add
+  cd /workspaces/webvaildate
+  kap add
+  kap sync
+
+  # check the pods
+  kap ls
+
+  # check the endpoint
+  kap check
+
+  # check the logs
+  kap logs
+
+  # remove WebValidate
+  kap remove
+  kap sync
+
+  # check the pods
+  kap ls
+
+
+  cd /workspaces/ngsa
+
+  # check the endpoint
+  kap check
+
+  # check the logs
+  kap logs
+
+  # remove the app
+  kap remove
+  kap sync
+
+  # check the pods
+  kap ls
+
+  ```
+
+Deploy `bootstrap` services
+
+  ```bash
+
+  # add fluentbit to the cluster
+  kap bootstrap add fluentbit
+  kap sync
+
+  # check the pods
+  kap ls
+
+  # add prometheus, grafana and a jump box to the cluster
+  kap bootstrap add all
+  kap sync
+
+  # check the pods
+  kap ls
+
+  # remove the bootstrap services
+  kap bootstrap remove all
+  kap sync
+
+  # check the pods
+  kap ls
+
+  ```
 
 ### Engineering Docs
 
