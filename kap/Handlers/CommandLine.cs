@@ -18,16 +18,16 @@ namespace Kube.Apps
         private static readonly List<string> EnvVarErrors = new ();
         private static readonly DateTime Now = DateTime.UtcNow;
 
-        public static Config Config { get; set; } = null;
+        public static AppConfig AppConfig { get; set; } = null;
 
         /// <summary>
         /// Run the app
         /// </summary>
         /// <param name="config">command line config</param>
         /// <returns>status</returns>
-        public static int RunApp(Config config)
+        public static int RunApp(AppConfig config)
         {
-            Config = config;
+            AppConfig = config;
 
             return 1;
         }
@@ -47,8 +47,8 @@ namespace Kube.Apps
                 TreatUnmatchedTokensAsErrors = false,
             };
 
-            Command add = new ("add", "Add bootstrap service");
-            Command remove = new ("remove", "Remove bootstrap service");
+            Command add = new (Commands.Add, "Add bootstrap service");
+            Command remove = new (Commands.Remove, "Remove bootstrap service");
             remove.AddAlias("rm");
 
             Command bs = new (Commands.Bootstrap, "Manage bootstrap services");
@@ -59,25 +59,30 @@ namespace Kube.Apps
             add.AddCommand(new (Commands.All, "Add all bootstrap service"));
             remove.AddCommand(new (Commands.All, "Remove all bootstrap service"));
 
-            IEnumerable<string> files = Directory.EnumerateFiles(Dirs.KapBootstrapDir, "*.yaml");
+            IEnumerable<string> dirs = Directory.EnumerateDirectories(Dirs.KapBootstrapDir);
 
-            foreach (string f in files)
+            foreach (string dir in dirs)
             {
-                add.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
-                remove.AddCommand(new (Path.GetFileNameWithoutExtension(f)));
+                add.AddCommand(new (Path.GetFileName(dir)));
+                remove.AddCommand(new (Path.GetFileName(dir)));
             }
 
-            Command rm = new ("remove", "Remove app from GitOps");
+            Command rm = new (Commands.Remove, "Remove app from GitOps");
             rm.AddAlias("rm");
 
             Command appNew = new (Commands.New, "Create a new app");
             appNew.AddCommand(new (Commands.DotNet, "Create a new Dotnet WebAPI app"));
 
-            Command ls = new ("list", "List the apps running in Kubernetes");
+            Command ls = new (List, "List the apps running in Kubernetes");
             ls.AddAlias("ls");
 
-            root.AddCommand(new ("add", "Add the app to GitOps"));
+            Command cfg = new (Commands.Config, "Manage KubeApps configuration");
+            cfg.AddCommand(new (Commands.Reset, "Reset config files to default"));
+            cfg.AddCommand(new (Commands.Update, "Get the latest config files"));
+
+            root.AddCommand(new (Commands.Add, "Add the app to GitOps"));
             root.AddCommand(bs);
+            root.AddCommand(cfg);
             root.AddCommand(ls);
             root.AddCommand(new (Commands.Build, "Build the app"));
             root.AddCommand(new (Commands.Check, "Check the app endpoint (if configured)"));
