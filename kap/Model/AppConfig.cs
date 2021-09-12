@@ -99,6 +99,11 @@ namespace Kube.Apps
                 cfg["deploy"] = now.ToString("yyyy-MM-dd-HH-mm-ss");
             }
 
+            if (!cfg.ContainsKey("targets"))
+            {
+                cfg["targets"] = new string[] { "local" };
+            }
+
             return cfg;
         }
     }
