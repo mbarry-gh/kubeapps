@@ -208,49 +208,47 @@ namespace Kube.Apps
 
             if (!File.Exists(Dirs.ConfigFile))
             {
-                templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetConfig))
-                    .Replace($"{GitOpsValue(Name)}", KapConfig[Name].ToString())
-                    .Replace($"{GitOpsValue(Namespace)}", KapConfig[Namespace].ToString())
-                    .Replace($"{GitOpsValue(ImageName)}", KapConfig[ImageName].ToString())
-                    .Replace($"{GitOpsValue(ImageTag)}", KapConfig[ImageTag].ToString())
-                    .Replace($"{GitOpsValue(Port)}", KapConfig[Port].ToString())
-                    .Replace($"{GitOpsValue(NodePort)}", KapConfig[NodePort].ToString())
-                    .Replace($"{GitOpsValue(LivenessProbe)}", KapConfig[LivenessProbe].ToString())
-                    .Replace($"{GitOpsValue(ReadinessProbe)}", KapConfig[ReadinessProbe].ToString());
-
+                templ = ReadAndApplyTemplate(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetConfig));
                 File.WriteAllText(Dirs.ConfigFile, templ);
             }
 
-            templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetTemplate));
-
             if (File.Exists(Dirs.TemplateFile))
             {
-                templ = File.ReadAllText(Dirs.TemplateFile);
+                templ = ReadAndApplyTemplate(Dirs.TemplateFile);
             }
-
-            templ = templ.Replace($"{GitOpsValue(Name)}", KapConfig[Name].ToString())
-                .Replace($"{GitOpsValue(Namespace)}", KapConfig[Namespace].ToString())
-                .Replace($"{GitOpsValue(Version)}", KapConfig[Version].ToString())
-                .Replace($"{GitOpsValue(Deploy)}", KapConfig[Deploy].ToString())
-                .Replace($"{GitOpsValue(ImageName)}", KapConfig[ImageName].ToString())
-                .Replace($"{GitOpsValue(ImageTag)}", KapConfig[ImageTag].ToString())
-                .Replace($"{GitOpsValue(Port)}", KapConfig[Port].ToString())
-                .Replace($"{GitOpsValue(NodePort)}", KapConfig[NodePort].ToString())
-                .Replace($"{GitOpsValue(LivenessProbe)}", KapConfig[LivenessProbe].ToString())
-                .Replace($"{GitOpsValue(ReadinessProbe)}", KapConfig[ReadinessProbe].ToString());
+            else
+            {
+                templ = ReadAndApplyTemplate(Path.Combine(Dirs.KapDotnetDir, Dirs.DotnetTemplate));
+            }
 
             File.WriteAllText($"{Dirs.KubeAppDir}/{KapConfig[Namespace]}-{KapConfig[Name]}.yaml", templ);
 
             if (!File.Exists(Dockerfile))
             {
-                templ = File.ReadAllText(Path.Combine(Dirs.KapDotnetDir, Dockerfile))
-                    .Replace($"{GitOpsValue(Port)}", KapConfig[Port].ToString())
-                    .Replace($"{GitOpsValue(Name)}", KapConfig[Name].ToString());
+                templ = ReadAndApplyTemplate(Path.Combine(Dirs.KapDotnetDir, Dockerfile));
 
                 File.WriteAllText(Dockerfile, templ);
             }
 
             return 0;
+        }
+
+        public string ReadAndApplyTemplate(string path)
+        {
+            string templ = string.Empty;
+
+            if (File.Exists(path))
+            {
+                templ = File.ReadAllText(path);
+
+                foreach (KeyValuePair<string, object> kv in KapConfig)
+                {
+                    templ = templ.Replace("{{gitops." + kv.Key + "}}", kv.Value.ToString())
+                        .Replace("{{ gitops." + kv.Key + " }}", kv.Value.ToString());
+                }
+            }
+
+            return templ;
         }
 
         // create and initialize a new app (dotnet only at this point)
