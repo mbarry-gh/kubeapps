@@ -54,12 +54,6 @@ namespace Kube.Apps
         // read / generate app config
         public Dictionary<string, object> KapConfig { get; } = AppConfig.ReadKapConfig();
 
-        // template replace value
-        public static string GitOpsValue(string name)
-        {
-            return $"{{{{gitops.{name}}}}}";
-        }
-
 #pragma warning disable CA1822 // Interface consistency
 
         // run the command processor
@@ -239,12 +233,22 @@ namespace Kube.Apps
 
             if (File.Exists(path))
             {
+                string json = string.Empty;
+
                 templ = File.ReadAllText(path);
 
                 foreach (KeyValuePair<string, object> kv in KapConfig)
                 {
-                    templ = templ.Replace("{{gitops." + kv.Key + "}}", kv.Value.ToString())
-                        .Replace("{{ gitops." + kv.Key + " }}", kv.Value.ToString());
+                    if (kv.Value.GetType().Name == "String")
+                    {
+                        json = kv.Value.ToString();
+                    }
+                    else
+                    {
+                        json = System.Text.Json.JsonSerializer.Serialize(kv.Value);
+                    }
+
+                    templ = templ.Replace("{{gitops." + kv.Key + "}}", json).Replace("{{ gitops." + kv.Key + " }}", json);
                 }
             }
 
