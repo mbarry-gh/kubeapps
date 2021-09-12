@@ -11,8 +11,8 @@ namespace Kube.Apps
         public const string KubeAppDir = "kubeapps";
         public const string TemplateFile = "kubeapps/template.yaml";
         public const string ConfigFile = "kubeapps/config.json";
-        public const string DotnetConfig = "config.json";
-        public const string DotnetTemplate = "template.yaml";
+        public const string DotnetConfig = "config.kap";
+        public const string DotnetTemplate = "template.kap";
 
         public static bool IsWindows { get; set; }
 
